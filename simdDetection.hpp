@@ -12,16 +12,63 @@ constexpr const char TAB = '\t';
 typedef unsigned char uint8_t;
 
 enum class CPUArchitectures : unsigned char {
-	x86,
-	x86_64,
-	ARM,
-	ARM64,
-	Unknown
+	x86 = 1 << 0,
+	x86_64 = 1 << 1,
+	ARM = 1 << 2,
+	ARM64 = 1 << 3,
+	Unknown = 1 << 4
 };
+
+enum class SIMDLevels : unsigned short {
+	NONE = 0,			// 0
+	SSE2 = 1 << 0,		// 1
+	SSE3 = 1 << 1,		// 2
+	SSSE3 = 1 << 2,		// 4
+	SSE4_1 = 1 << 3,	// 8
+	SSE4_2 = 1 << 4,	// 16
+	AVX = 1 << 5,		// 32
+	AVX2 = 1 << 6,		// 64
+	AVX512F = 1 << 7,	// 128
+	AVX512DQ = 1 << 8,  // 256
+	AVX512BW = 1 << 9,  // 512
+	AVX512VL = 1 << 10, // 1024
+	NEON = 1 << 11,     // 2048
+};
+
+std::string toString(CPUArchitectures arch) {
+	switch (arch) {
+	case CPUArchitectures::x86: return "x86";
+	case CPUArchitectures::x86_64: return "x86-64";
+	case CPUArchitectures::ARM: return "ARM";
+	case CPUArchitectures::ARM64: return "ARM64";
+
+	default: return "Unknown";
+	}
+}
+
+std::string toString(SIMDLevels level) {
+	switch (level) {
+	case SIMDLevels::NONE: return "None";
+	case SIMDLevels::SSE2: return "SSE2";
+	case SIMDLevels::SSE3: return "SSE3";
+	case SIMDLevels::SSSE3: return "SSSE3";
+	case SIMDLevels::SSE4_1: return "SSE4.1";
+	case SIMDLevels::SSE4_2: return "SSE4.2";
+	case SIMDLevels::AVX: return "AVX";
+	case SIMDLevels::AVX2: return "AVX2";
+	case SIMDLevels::AVX512F: return "AVX-512 Foundation";
+	case SIMDLevels::AVX512DQ: return "AVX-512 Doubleword and Quadword";
+	case SIMDLevels::AVX512BW: return "AVX-512 Byte and Word";
+	case SIMDLevels::AVX512VL: return "AVX-512 Vector Length Extensions";
+	case SIMDLevels::NEON: return "NEON";
+
+	default: return "Unknown";
+	}
+}
 
 class SIMDIntegerSupport {
 private:
-	unsigned short supportedSIMD;
+	const unsigned short supportedSIMD;
 
 	/// @brief Check if a bit is 1
 	inline static bool getBit(int value, uint8_t bit) noexcept {
@@ -79,8 +126,8 @@ private:
 #		 endif
 	 }
 
-	void getSIMDSupport() {
-		supportedSIMD = 0; // Initialize to 0, no SIMD support
+	static unsigned short getSIMDSupport() {
+		unsigned short supportedSIMD = 0; // Initialize to 0, no SIMD support
 #		if defined(_WIN32) && defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))	// Windows for X86 or X86_64 in MSVC (check readme)
 #			include <intrin.h>	// MSVC exclusive header for SIMD detection
 			int cpuInfo[4]; // EAX, EBX, ECX, EDX
@@ -113,7 +160,7 @@ private:
 			setBit(supportedSIMD, 11, true); // NEON support on Windows ARM64
 #		elif defined(__linux__) && (defined(__x86_64__) || defined(__i386__))	// Linux on x86 or x86_64 (check readme for compiler info)
 			{
-
+				// Add G++ support on linux
 			}
 #		elif defined(__linux__) && defined(__aarch64__)	// Linux on ARM64
 #			include <sys/auxv.h>
@@ -121,24 +168,34 @@ private:
 			setBit(supportedSIMD, 11, getauxval(AT_HWCAP) & HWCAP_ASIMD); // NEON support not guaranteed due to different distros
 #		elif defined(__apple__) && defined(__aarch64__)	// ARM64 or Apple silicon
 			setBit(supportedSIMD, 11, true); // NEON support on Apple platforms
+#		elif defined(__apple__) && (defined(__x86_64__) || defined(__i386__))	// Apple on x86 or x86_64
+			{
+				// Add Clang support on macOS
+			}
 #		endif
+			return supportedSIMD;
 	}
 
 public:
+	SIMDIntegerSupport() : supportedSIMD(getSIMDSupport()) {
+	}
+
 	void displaySupport() {
+		std::cout << "CPU Architecture: " << toString(getCPUArchitecture()) << NEWL;
 		std::cout << "SIMD Support: " << NEWL;
-		std::cout << "SSE2: " << TAB << (getBit(supportedSIMD, 0) ? "Enabled " : "Disabled") << NEWL;
-		std::cout << "SSE3: " << TAB << (getBit(supportedSIMD, 1) ? "Enabled " : "Disabled") << NEWL;
-		std::cout << "SSSE3: " << TAB << (getBit(supportedSIMD, 2) ? "Enabled " : "Disabled") << NEWL;
+		std::cout << "SSE2:" << TAB << TAB << (getBit(supportedSIMD, 0) ? "Enabled " : "Disabled") << NEWL;
+		std::cout << "SSE3:" << TAB << TAB << (getBit(supportedSIMD, 1) ? "Enabled " : "Disabled") << NEWL;
+		std::cout << "SSSE3:" << TAB << TAB << (getBit(supportedSIMD, 2) ? "Enabled " : "Disabled") << NEWL;
 		std::cout << "SSE4.1: " << TAB << (getBit(supportedSIMD, 3) ? "Enabled " : "Disabled") << NEWL;
 		std::cout << "SSE4.2: " << TAB << (getBit(supportedSIMD, 4) ? "Enabled " : "Disabled") << NEWL;
-		std::cout << "AVX: " << TAB << (getBit(supportedSIMD, 5) ? "Enabled " : "Disabled") << NEWL;
-		std::cout << "AVX2:	" << TAB << (getBit(supportedSIMD, 6) ? "Enabled " : "Disabled") << NEWL;
-		std::cout << "AVX512 Foundation: " << (getBit(supportedSIMD, 7) ? "Enabled " : "Disabled") << NEWL;
-		std::cout << "AVX512 Double word and Quad word: " << (getBit(supportedSIMD, 8) ? "Enabled " : "Disabled") << NEWL;
-		std::cout << "AVX512 Byte and word: " << (getBit(supportedSIMD, 9) ? "Enabled " : "Disabled") << NEWL;
-		std::cout << "AVX512 Vector length extensions: " << (getBit(supportedSIMD, 10) ? "Enabled " : "Disabled") << NEWL;
-		std::cout << "NEON: " << TAB << (getBit(supportedSIMD, 11) ? "Enabled " : "Disabled") << NEWL;
-		std::cout << "AVX10" << TAB << (getBit(supportedSIMD, 12) ? "Enabled " : "Disabled") << NEWL;
+		std::cout << "AVX:" << TAB << TAB << (getBit(supportedSIMD, 5) ? "Enabled " : "Disabled") << NEWL;
+		std::cout << "AVX2:" << TAB << TAB << (getBit(supportedSIMD, 6) ? "Enabled " : "Disabled") << NEWL;
+		std::cout << "AVX512F: " << TAB << (getBit(supportedSIMD, 7) ? "Enabled " : "Disabled") << NEWL;
+		std::cout << "AVX512DQ: " << TAB << (getBit(supportedSIMD, 8) ? "Enabled " : "Disabled") << NEWL;
+		std::cout << "AVX512BW: " << TAB << (getBit(supportedSIMD, 9) ? "Enabled " : "Disabled") << NEWL;
+		std::cout << "AVX512VL: " << TAB << (getBit(supportedSIMD, 10) ? "Enabled " : "Disabled") << NEWL;
+		std::cout << "NEON: " << TAB << TAB << (getBit(supportedSIMD, 11) ? "Enabled " : "Disabled") << NEWL;
 	}
+
+	void getMaximumSIMDLevel();
 };

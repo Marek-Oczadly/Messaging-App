@@ -10,10 +10,12 @@ Compilation information:
 */
 
 #include <iostream>
+#include "simdDetection.hpp"
 
 int main()
 {
-    std::cout << "Hello World!\n";
+	SIMDIntegerSupport simdSupport;
+	simdSupport.displaySupport();
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
