@@ -69,6 +69,19 @@ std::string toString(SIMDLevels level) {
 class SIMDIntegerSupport {
 private:
 	const unsigned short supportedSIMD;
+	const CPUArchitectures arch;
+
+#if defined (__linux__)		// G++ does not define _XCR_XFEATURE_ENABLED_MASK
+	static inline uint64_t getXCR0() {
+		unsigned int eax, edx;
+		__asm__ volatile (
+			"xgetbx" : "=a"(eax), "=d"(edx) : "c"(0)
+		);
+		return ((uint64_t)edx << 32) | eax;
+	}
+
+#endif
+
 
 	/// @brief Check if a bit is 1
 	inline static bool getBit(int value, uint8_t bit) noexcept {
@@ -112,7 +125,7 @@ private:
 		else clearBit(value, bit);
 	}
 
-	 CPUArchitectures getCPUArchitecture() {
+	 static CPUArchitectures getCPUArchitecture() noexcept {
 #		 if defined(__x86_64__) || defined(_M_X64)	// x86_64
 			 return CPUArchitectures::x86_64;
 #		 elif defined(__i386__) || defined(_M_IX86)	// x86
@@ -158,10 +171,9 @@ private:
 			}
 #		elif defined(_WIN32) && defined(__aarch64__)	// Windows on ARM64 - NEON guaranteed
 			setBit(supportedSIMD, 11, true); // NEON support on Windows ARM64
-#		elif defined(__linux__) && (defined(__x86_64__) || defined(__i386__))	// Linux on x86 or x86_64 (check readme for compiler info)
-			{
-				// Add G++ support on linux
-			}
+#		elif (defined(__linux__) && defined(__GNUG__)) && (defined(__x86_64__) || defined(__i386__))	// Linux on x86 or x86_64 with G++ compiler
+#			include <cpuid.h>	// G++ exclusive header
+			
 #		elif defined(__linux__) && defined(__aarch64__)	// Linux on ARM64
 #			include <sys/auxv.h>
 # 			include <asm/hwcap.h>
@@ -177,8 +189,8 @@ private:
 	}
 
 public:
-	SIMDIntegerSupport() : supportedSIMD(getSIMDSupport()) {
-	}
+	SIMDIntegerSupport() : supportedSIMD(getSIMDSupport()),
+						   arch(getCPUArchitecture()) {}
 
 	void displaySupport() {
 		std::cout << "CPU Architecture: " << toString(getCPUArchitecture()) << NEWL;

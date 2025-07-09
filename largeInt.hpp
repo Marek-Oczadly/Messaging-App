@@ -4,6 +4,7 @@
 
 #pragma once
 #include <array>
+#include "simdDetection.hpp"
 
 
 class uint256_t {
