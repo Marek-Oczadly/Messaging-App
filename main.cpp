@@ -1,6 +1,3 @@
-// Messaging App.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
 
 /*
 Compilation information: 

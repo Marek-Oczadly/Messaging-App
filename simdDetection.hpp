@@ -221,7 +221,7 @@ public:
 	SIMDIntegerSupport() : supportedSIMD(getSIMDSupport()),
 						   arch(getCPUArchitecture()) {}
 
-	void displaySupport() {
+	void displaySupport() const noexcept {
 		std::cout << "CPU Architecture: " << toString(getCPUArchitecture()) << NEWL;
 		std::cout << "SIMD Support: " << NEWL;
 		std::cout << "SSE2:" << TAB << TAB << (getBit(supportedSIMD, 0) ? "Enabled " : "Disabled") << NEWL;
@@ -238,5 +238,6 @@ public:
 		std::cout << "NEON: " << TAB << TAB << (getBit(supportedSIMD, 11) ? "Enabled " : "Disabled") << NEWL;
 	}
 
-	void getMaximumSIMDLevel();
+	SIMDLevels getMaximumSIMDLevel() const noexcept {
+	}
 };
