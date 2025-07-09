@@ -72,7 +72,7 @@ private:
 	const CPUArchitectures arch;
 
 #if defined (__linux__)		// G++ does not define _XCR_XFEATURE_ENABLED_MASK
-	static inline uint64_t getXCR0() {
+	static inline unsigned long long getXCR0() {
 		unsigned int eax, edx;
 		__asm__ volatile (
 			"xgetbx" : "=a"(eax), "=d"(edx) : "c"(0)
@@ -172,7 +172,39 @@ private:
 #		elif defined(_WIN32) && defined(__aarch64__)	// Windows on ARM64 - NEON guaranteed
 			setBit(supportedSIMD, 11, true); // NEON support on Windows ARM64
 #		elif (defined(__linux__) && defined(__GNUG__)) && (defined(__x86_64__) || defined(__i386__))	// Linux on x86 or x86_64 with G++ compiler
+			// Effectively the same as MSVC however using a different header and inline asm
 #			include <cpuid.h>	// G++ exclusive header
+			unsigned int eax, ebx, ecx, edx, maxLeaf;
+			unsigned long long xcrFeatureMask = getXCR0();
+			if (!__get_cpuid(0, &maxLeaft, &ebx, &ecx, &edx)) { // leaf 0
+				return 0; // No CPUID support so no SIMD can be assumed
+			}
+			if (maxLeaf >= 1) {
+				__get_cpuid(1, &eax, &ebx, &ecx, &edx);		// Leaf 1
+
+				// SSE support
+				setBit(supportedSIMD, 0, getBit(edx, 26)); // SSE2 support
+				setBit(supportedSIMD, 1, getBit(ecx, 0)); // SSE3 support
+				setBit(supportedSIMD, 2, getBit(ecx, 9)); // SSSE3 support
+				setBit(supportedSIMD, 3, getBit(ecx, 19)); // SSE4.1 support
+				setBit(supportedSIMD, 4, getBit(ecx, 20)); // SSE4.2 support
+
+				// AVX
+				setBit(supportedSIMD, 5, getBit(ecx, 27) && getBit(ecx, 28)
+					&& ((xcrFeatureMask & 0x6) == 0x6)); // AVX support (requires OS support)
+
+				if (maxLeaf >= 7 && getBit(supportedSIMD, 5)) { // Checking further AVX support (requires AVX support)
+					__get_cpuid(7, 0, &eax, &ebx, &ecx, &edx); // Leaf 7, subleaf 0
+
+					setBit(supportedSIMD, 6, getBit(ebx, 5)); // AVX2 Support
+
+					if ((xcrFeatureMask & 0xE6) == 0xE6) {	// Check if AVX512 is supported
+						setBit(supportedSIMD, 7, getBit(ebx, 16)); // AVX512F Support
+						setBit(supportedSIMD, 8, getBit(ebx, 17)); // AVX512DQ Support
+						setBit(supportedSIMD, 9, getBit(ebx, 30)); // AVX512BW Support
+						setBit(supportedSIMD, 10, getBit(ebx, 31)); // AVX512VL Support
+					}
+			}
 			
 #		elif defined(__linux__) && defined(__aarch64__)	// Linux on ARM64
 #			include <sys/auxv.h>
