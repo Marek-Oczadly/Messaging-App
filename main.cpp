@@ -1,3 +1,7 @@
+// Author: Marek Oczadly
+// License: MIT
+// main.cpp
+
 
 /*
 Compilation information: 
@@ -6,7 +10,6 @@ Compilation information:
 > MacOS - Clang
 */
 
-#include <iostream>
 #include "simdDetection.hpp"
 
 int main()

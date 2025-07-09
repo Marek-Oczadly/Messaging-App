@@ -205,8 +205,8 @@ private:
 						setBit(supportedSIMD, 9, getBit(ebx, 30)); // AVX512BW Support
 						setBit(supportedSIMD, 10, getBit(ebx, 31)); // AVX512VL Support
 					}
+				}
 			}
-			
 #		elif defined(__linux__) && defined(__aarch64__)	// Linux on ARM64
 #			include <sys/auxv.h>
 # 			include <asm/hwcap.h>
