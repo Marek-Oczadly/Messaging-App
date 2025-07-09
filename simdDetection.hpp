@@ -171,7 +171,8 @@ private:
 			}
 #		elif defined(_WIN32) && defined(__aarch64__)	// Windows on ARM64 - NEON guaranteed
 			setBit(supportedSIMD, 11, true); // NEON support on Windows ARM64
-#		elif (defined(__linux__) && defined(__GNUG__)) && (defined(__x86_64__) || defined(__i386__))	// Linux on x86 or x86_64 with G++ compiler
+#		elif ((defined(__linux__) && defined(__GNUG__)) || (defined(__apple__) && defined(__clang__)))	// Linux or MacOS with G++ or Clang compiler respectively
+		&& (defined(__x86_64__) || defined(__i386__))	// x86 or x86_64 architecture
 			// Effectively the same as MSVC however using a different header and inline asm
 #			include <cpuid.h>	// G++ exclusive header
 			unsigned int eax, ebx, ecx, edx, maxLeaf;
@@ -212,10 +213,6 @@ private:
 			setBit(supportedSIMD, 11, getauxval(AT_HWCAP) & HWCAP_ASIMD); // NEON support not guaranteed due to different distros
 #		elif defined(__apple__) && defined(__aarch64__)	// ARM64 or Apple silicon
 			setBit(supportedSIMD, 11, true); // NEON support on Apple platforms
-#		elif defined(__apple__) && (defined(__x86_64__) || defined(__i386__))	// Apple on x86 or x86_64
-			{
-				// Add Clang support on macOS
-			}
 #		endif
 			return supportedSIMD;
 	}
