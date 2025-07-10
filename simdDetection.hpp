@@ -177,7 +177,7 @@ private:
 #			include <cpuid.h>	// G++ exclusive header
 			unsigned int eax, ebx, ecx, edx, maxLeaf;
 			unsigned long long xcrFeatureMask = getXCR0();
-			if (!__get_cpuid(0, &maxLeaft, &ebx, &ecx, &edx)) { // leaf 0
+			if (!__get_cpuid(0, &maxLeaf, &ebx, &ecx, &edx)) { // leaf 0
 				return 0; // No CPUID support so no SIMD can be assumed
 			}
 			if (maxLeaf >= 1) {
@@ -239,5 +239,42 @@ public:
 	}
 
 	SIMDLevels getMaximumSIMDLevel() const noexcept {
+	}
+
+	bool SSE2() const noexcept {
+		return getBit(supportedSIMD, 0);
+	}
+	bool SSE3() const noexcept {
+		return getBit(supportedSIMD, 1);
+	}
+	bool SSSE3() const noexcept {
+		return getBit(supportedSIMD, 2);
+	}
+	bool SSE4_1() const noexcept {
+		return getBit(supportedSIMD, 3);
+	}
+	bool SSE4_2() const noexcept {
+		return getBit(supportedSIMD, 4);
+	}
+	bool AVX() const noexcept {
+		return getBit(supportedSIMD, 5);
+	}
+	bool AVX2() const noexcept {
+		return getBit(supportedSIMD, 6);
+	}
+	bool AVX512F() const noexcept {
+		return getBit(supportedSIMD, 7);
+	}
+	bool AVX512DQ() const noexcept {
+		return getBit(supportedSIMD, 8);
+	}
+	bool AVX512BW() const noexcept {
+		return getBit(supportedSIMD, 9);
+	}
+	bool AVX512VL() const noexcept {
+		return getBit(supportedSIMD, 10);
+	}
+	bool NEON() const noexcept {
+		return getBit(supportedSIMD, 11);
 	}
 };
