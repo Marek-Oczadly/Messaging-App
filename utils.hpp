@@ -1,5 +1,10 @@
+// Author: Marek Oczadly
+// License: MIT
+// utils.hpp
+
 #pragma once
 #include <cstdint>
+#include <bit>
 
 constexpr const char NEWL = '\n';
 constexpr const char TAB = '\t';
@@ -66,4 +71,10 @@ inline void setBit(unsigned short& value, uint8_t bit, bool state) noexcept {
 inline void setBit(unsigned int& value, uint8_t bit, bool state) noexcept {
 	if (state) setBit(value, bit);
 	else clearBit(value, bit);
+}
+
+
+unsigned char floorLog2(const unsigned short num) noexcept {
+	if (num == 0) return -1; // Log2(0) is undefined, return 0 for safety
+	return std::bit_width(num) - 1;
 }

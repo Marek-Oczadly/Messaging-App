@@ -202,18 +202,9 @@ public:
 	}
 
 	SIMDLevels getMaximumSIMDLevel() const noexcept {
-		if (AVX512VL()) return SIMDLevels::AVX512VL;
-		if (AVX512BW()) return SIMDLevels::AVX512BW;
-		if (AVX512DQ()) return SIMDLevels::AVX512DQ;
-		if (AVX512F()) return SIMDLevels::AVX512F;
-		if (AVX2()) return SIMDLevels::AVX2;
-		if (AVX()) return SIMDLevels::AVX;
-		if (SSE4_2()) return SIMDLevels::SSE4_2;
-		if (SSE4_1()) return SIMDLevels::SSE4_1;
-		if (SSSE3()) return SIMDLevels::SSSE3;
-		if (SSE3()) return SIMDLevels::SSE3;
-		if (SSE2()) return SIMDLevels::SSE2;
-		return SIMDLevels::NONE; // No SIMD support
+		unsigned char power = floorLog2(supportedSIMD);
+		return static_cast<SIMDLevels>(
+			(power <= 11) ? (1 << power) : 0);
 	}
 
 	CPUArchitectures CPUArchitecture() const noexcept {
