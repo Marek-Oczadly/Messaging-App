@@ -25,11 +25,11 @@ constexpr const char TAB = '\t';
 typedef unsigned char uint8_t;
 
 enum class CPUArchitectures : unsigned char {
-	x86 = 1 << 0,
-	x86_64 = 1 << 1,
-	ARM = 1 << 2,
-	ARM64 = 1 << 3,
-	Unknown = 1 << 4
+	Unknown = 0,		// 0
+	x86 = 1 << 0,		// 1
+	x86_64 = 1 << 1,	// 2
+	ARM = 1 << 2,		// 4
+	ARM64 = 1 << 3,		// 8
 };
 
 enum class SIMDLevels : unsigned short {
@@ -154,7 +154,7 @@ private:
 		else clearBit(value, bit);
 	}
 
-	 static CPUArchitectures getCPUArchitecture() noexcept {
+	 static inline CPUArchitectures findCPUArchitecture() noexcept {
 #		 if defined(__x86_64__) || defined(_M_X64)	// x86_64
 			 return CPUArchitectures::x86_64;
 #		 elif defined(__i386__) || defined(_M_IX86)	// x86
@@ -245,10 +245,10 @@ private:
 
 public:
 	SIMDIntegerSupport() : supportedSIMD(getSIMDSupport()),
-						   arch(getCPUArchitecture()) {}
+						   arch(findCPUArchitecture()) {}
 
 	void displaySupport() const noexcept {
-		std::cout << "CPU Architecture: " << toString(getCPUArchitecture()) << NEWL;
+		std::cout << "CPU Architecture: " << toString(arch) << NEWL;
 		std::cout << "SIMD Support: " << NEWL;
 		std::cout << "SSE2:" << TAB << TAB << (getBit(supportedSIMD, 0) ? "Enabled " : "Disabled") << NEWL;
 		std::cout << "SSE3:" << TAB << TAB << (getBit(supportedSIMD, 1) ? "Enabled " : "Disabled") << NEWL;
@@ -265,7 +265,24 @@ public:
 	}
 
 	SIMDLevels getMaximumSIMDLevel() const noexcept {
+		if (AVX512VL()) return SIMDLevels::AVX512VL;
+		if (AVX512BW()) return SIMDLevels::AVX512BW;
+		if (AVX512DQ()) return SIMDLevels::AVX512DQ;
+		if (AVX512F()) return SIMDLevels::AVX512F;
+		if (AVX2()) return SIMDLevels::AVX2;
+		if (AVX()) return SIMDLevels::AVX;
+		if (SSE4_2()) return SIMDLevels::SSE4_2;
+		if (SSE4_1()) return SIMDLevels::SSE4_1;
+		if (SSSE3()) return SIMDLevels::SSSE3;
+		if (SSE3()) return SIMDLevels::SSE3;
+		if (SSE2()) return SIMDLevels::SSE2;
+		return SIMDLevels::NONE; // No SIMD support
 	}
+
+	CPUArchitectures CPUArchitecture() const noexcept {
+		return arch;
+	}
+
 	bool SSE2() const noexcept {
 		return getBit(supportedSIMD, 0);
 	}
