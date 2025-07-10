@@ -7,7 +7,7 @@
 #include <string>
 #include <array>
 
-#if (defined(__linux__) && defined(__GNUG__)) || (defined(__apple__) && defined(__clang__))
+#if ((defined(__linux__) && defined(__GNUG__)) || (defined(__apple__) && defined(__clang__))) && (defined(__x86_64__) || defined(__i386__))	// G++ or Clang for X86 or X86_64
 #	include <cpuid.h>	// G++/clang exclusive header
 #endif
 
@@ -88,7 +88,7 @@ private:
 	static inline unsigned long long getXCR0() {
 		unsigned int eax, edx;
 		__asm__ volatile (
-			"xgetbx" : "=a"(eax), "=d"(edx) : "c"(0)
+			"xgetbv" : "=a"(eax), "=d"(edx) : "c"(0)
 		);
 		return ((unsigned long long)edx << 32) | eax;
 	}
@@ -223,7 +223,7 @@ private:
 					&& ((xcrFeatureMask & 0x6) == 0x6)); // AVX support (requires OS support)
 
 				if (maxLeaf >= 7 && getBit(supportedSIMD, 5)) { // Checking further AVX support (requires AVX support)
-					__get_cpuid(7, 0, &eax, &ebx, &ecx, &edx); // Leaf 7, subleaf 0
+					__get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx); // Leaf 7, subleaf 0
 
 					setBit(supportedSIMD, 6, getBit(ebx, 5)); // AVX2 Support
 
