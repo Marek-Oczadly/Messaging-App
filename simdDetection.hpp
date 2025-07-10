@@ -7,6 +7,19 @@
 #include <string>
 #include <array>
 
+#if (defined(__linux__) && defined(__GNUG__)) || (defined(__apple__) && defined(__clang__))
+#	include <cpuid.h>	// G++/clang exclusive header
+#endif
+
+# if defined(__linux__) && defined(__aarch64__)	// Linux on ARM64
+#	include <sys/auxv.h>
+# 	include <asm/hwcap.h>
+# endif
+
+#if defined(_WIN32) && defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))	// Windows for X86 or X86_64 in MSVC
+#	include <intrin.h>	// MSVC exclusive header for SIMD detection
+#endif
+
 constexpr const char NEWL = '\n';
 constexpr const char TAB = '\t';
 typedef unsigned char uint8_t;
@@ -71,19 +84,22 @@ private:
 	const unsigned short supportedSIMD;
 	const CPUArchitectures arch;
 
-#if defined (__linux__)		// G++ does not define _XCR_XFEATURE_ENABLED_MASK
+#if defined (__linux__) || defined(__apple__)		// G++ and Clang do not define _XCR_XFEATURE_ENABLED_MASK. Same for linux and Apple platforms
 	static inline unsigned long long getXCR0() {
 		unsigned int eax, edx;
 		__asm__ volatile (
 			"xgetbx" : "=a"(eax), "=d"(edx) : "c"(0)
 		);
-		return ((uint64_t)edx << 32) | eax;
+		return ((unsigned long long)edx << 32) | eax;
 	}
-
 #endif
 
 
 	/// @brief Check if a bit is 1
+	inline static bool getBit(unsigned int value, uint8_t bit) noexcept {
+		return (value & (1U << bit)) != 0;
+	}
+
 	inline static bool getBit(int value, uint8_t bit) noexcept {
 		return (value & (1U << bit)) != 0;
 	}
@@ -95,6 +111,10 @@ private:
 
 	/// @brief Set a bit to 1
 	inline static void setBit(int& value, uint8_t bit) noexcept {
+		value |= (1U << bit);
+	}
+
+	inline static void setBit(unsigned int& value, uint8_t bit) noexcept {
 		value |= (1U << bit);
 	}
 
@@ -113,6 +133,10 @@ private:
 		value &= ~(1U << bit);
 	}
 
+	inline static void clearBit(unsigned int& value, uint8_t bit) noexcept {
+		value &= ~(1U << bit);
+	}
+
 	/// @brief Set a bit to 0 or 1 based on the state
 	inline static void setBit(int& value, uint8_t bit, bool state) noexcept {
 		if (state) setBit(value, bit);
@@ -121,6 +145,11 @@ private:
 
 	/// @brief Set a bit to 0 or 1 based on the state
 	inline static void setBit(unsigned short& value, uint8_t bit, bool state) noexcept {
+		if (state) setBit(value, bit);
+		else clearBit(value, bit);
+	}
+
+	inline static void setBit(unsigned int& value, uint8_t bit, bool state) noexcept {
 		if (state) setBit(value, bit);
 		else clearBit(value, bit);
 	}
@@ -142,7 +171,6 @@ private:
 	static unsigned short getSIMDSupport() {
 		unsigned short supportedSIMD = 0; // Initialize to 0, no SIMD support
 #		if defined(_WIN32) && defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))	// Windows for X86 or X86_64 in MSVC (check readme)
-#			include <intrin.h>	// MSVC exclusive header for SIMD detection
 			int cpuInfo[4]; // EAX, EBX, ECX, EDX
 			__cpuid(cpuInfo, 1);
 			unsigned long long xcrFeatureMask = _xgetbv(_XCR_XFEATURE_ENABLED_MASK);
@@ -171,13 +199,13 @@ private:
 			}
 #		elif defined(_WIN32) && defined(__aarch64__)	// Windows on ARM64 - NEON guaranteed
 			setBit(supportedSIMD, 11, true); // NEON support on Windows ARM64
-#		elif ((defined(__linux__) && defined(__GNUG__)) || (defined(__apple__) && defined(__clang__)))	// Linux or MacOS with G++ or Clang compiler respectively
-		&& (defined(__x86_64__) || defined(__i386__))	// x86 or x86_64 architecture
+
+			// Had to make the below line long because g++ was being a bitch and not letting me split the statement
+#		elif ((defined(__linux__) && defined(__GNUG__)) || (defined(__apple__) && defined(__clang__))) && (defined(__x86_64__) || defined(__i386__))	// x86 or x86_64 architecture
 			// Effectively the same as MSVC however using a different header and inline asm
-#			include <cpuid.h>	// G++ exclusive header
 			unsigned int eax, ebx, ecx, edx, maxLeaf;
 			unsigned long long xcrFeatureMask = getXCR0();
-			if (!__get_cpuid(0, &maxLeaf, &ebx, &ecx, &edx)) { // leaf 0
+			if (not __get_cpuid(0, &maxLeaf, &ebx, &ecx, &edx)) { // leaf 0
 				return 0; // No CPUID support so no SIMD can be assumed
 			}
 			if (maxLeaf >= 1) {
@@ -208,8 +236,6 @@ private:
 				}
 			}
 #		elif defined(__linux__) && defined(__aarch64__)	// Linux on ARM64
-#			include <sys/auxv.h>
-# 			include <asm/hwcap.h>
 			setBit(supportedSIMD, 11, getauxval(AT_HWCAP) & HWCAP_ASIMD); // NEON support not guaranteed due to different distros
 #		elif defined(__apple__) && defined(__aarch64__)	// ARM64 or Apple silicon
 			setBit(supportedSIMD, 11, true); // NEON support on Apple platforms
@@ -240,7 +266,6 @@ public:
 
 	SIMDLevels getMaximumSIMDLevel() const noexcept {
 	}
-
 	bool SSE2() const noexcept {
 		return getBit(supportedSIMD, 0);
 	}
