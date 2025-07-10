@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <array>
+#include "utils.hpp"
 
 #if ((defined(__linux__) && defined(__GNUG__)) || (defined(__apple__) && defined(__clang__))) && (defined(__x86_64__) || defined(__i386__))	// G++ or Clang for X86 or X86_64
 #	include <cpuid.h>	// G++/clang exclusive header
@@ -19,10 +20,6 @@
 #if defined(_WIN32) && defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))	// Windows for X86 or X86_64 in MSVC
 #	include <intrin.h>	// MSVC exclusive header for SIMD detection
 #endif
-
-constexpr const char NEWL = '\n';
-constexpr const char TAB = '\t';
-typedef unsigned char uint8_t;
 
 enum class CPUArchitectures : unsigned char {
 	Unknown = 0,		// 0
@@ -93,66 +90,6 @@ private:
 		return ((unsigned long long)edx << 32) | eax;
 	}
 #endif
-
-
-	/// @brief Check if a bit is 1
-	inline static bool getBit(unsigned int value, uint8_t bit) noexcept {
-		return (value & (1U << bit)) != 0;
-	}
-
-	inline static bool getBit(int value, uint8_t bit) noexcept {
-		return (value & (1U << bit)) != 0;
-	}
-
-	/// @brief Check if a bit is 1
-	inline static bool getBit(unsigned short value, uint8_t bit) noexcept {
-		return (value & (1U << bit)) != 0;
-	}
-
-	/// @brief Set a bit to 1
-	inline static void setBit(int& value, uint8_t bit) noexcept {
-		value |= (1U << bit);
-	}
-
-	inline static void setBit(unsigned int& value, uint8_t bit) noexcept {
-		value |= (1U << bit);
-	}
-
-	/// @brief Set a bit to 1
-	inline static void setBit(unsigned short& value, uint8_t bit) noexcept {
-		value |= (1U << bit);
-	}
-
-	/// @brief Clear a bit (set to 0)
-	inline static void clearBit(int& value, uint8_t bit) noexcept {
-		value &= ~(1U << bit);
-	}
-
-	/// @brief Clear a bit (set to 0)
-	inline static void clearBit(unsigned short& value, uint8_t bit) noexcept {
-		value &= ~(1U << bit);
-	}
-
-	inline static void clearBit(unsigned int& value, uint8_t bit) noexcept {
-		value &= ~(1U << bit);
-	}
-
-	/// @brief Set a bit to 0 or 1 based on the state
-	inline static void setBit(int& value, uint8_t bit, bool state) noexcept {
-		if (state) setBit(value, bit);
-		else clearBit(value, bit);
-	}
-
-	/// @brief Set a bit to 0 or 1 based on the state
-	inline static void setBit(unsigned short& value, uint8_t bit, bool state) noexcept {
-		if (state) setBit(value, bit);
-		else clearBit(value, bit);
-	}
-
-	inline static void setBit(unsigned int& value, uint8_t bit, bool state) noexcept {
-		if (state) setBit(value, bit);
-		else clearBit(value, bit);
-	}
 
 	 static inline CPUArchitectures findCPUArchitecture() noexcept {
 #		 if defined(__x86_64__) || defined(_M_X64)	// x86_64
