@@ -248,3 +248,8 @@ public:
 		return getBit(supportedSIMD, 11);
 	}
 };
+
+#ifndef SIMD_INTEGER_SUPPORT
+#define SIMD_INTEGER_SUPPORT
+extern SIMDIntegerSupport simdSupport;	// Global instance of SIMDIntegerSupport
+#endif

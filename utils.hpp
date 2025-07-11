@@ -74,7 +74,28 @@ inline void setBit(unsigned int& value, uint8_t bit, bool state) noexcept {
 }
 
 
-unsigned char floorLog2(const unsigned short num) noexcept {
-	if (num == 0) return -1; // Log2(0) is undefined, return 0 for safety
+unsigned char floorLog2(const uint8_t num) noexcept {
+	if (num == 0) return -1; // Log2(0) is undefined, return 255 for safety
 	return std::bit_width(num) - 1;
 }
+
+unsigned char floorLog2(const uint16_t num) noexcept {
+	if (num == 0) return -1; // Log2(0) is undefined, return 255 for safety
+	return std::bit_width(num) - 1;
+}
+unsigned char floorLog2(const uint32_t num) noexcept {
+	if (num == 0) return -1; // Log2(0) is undefined, return 255 for safety
+	return std::bit_width(num) - 1;
+}
+
+unsigned char floorLog2(const uint64_t num) noexcept {
+	if (num == 0) return -1; // Log2(0) is undefined, return 255 for safety
+	return std::bit_width(num) - 1;
+}
+
+#if defined(_MSC_VER)
+#include <intrin.h>
+
+unsigned char carry();
+
+#endif
