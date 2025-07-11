@@ -92,10 +92,3 @@ unsigned char floorLog2(const uint64_t num) noexcept {
 	if (num == 0) return -1; // Log2(0) is undefined, return 255 for safety
 	return std::bit_width(num) - 1;
 }
-
-#if defined(_MSC_VER)
-#include <intrin.h>
-
-unsigned char carry();
-
-#endif
