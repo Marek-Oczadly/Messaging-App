@@ -10,10 +10,9 @@ Compilation information:
 > MacOS - Clang
 */
 
-#include "simdDetection.hpp"
+#include "utils.hpp"
 
 int main()
 {
-	SIMDIntegerSupport simdSupport;
-	simdSupport.displaySupport();
+
 }

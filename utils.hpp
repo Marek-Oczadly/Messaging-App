@@ -9,6 +9,43 @@
 constexpr const char NEWL = '\n';
 constexpr const char TAB = '\t';
 
+template <size_t N, size_t M>
+constexpr size_t maxValue = (N > M) ? N : M;
+
+
+template<size_t N, typename T>
+inline void unroll(T&& func) {
+	if constexpr (N > 0) {
+		unroll<N - 1>(std::forward<T>(f));
+		func(N - 1);
+	}
+}
+
+template<size_t N, typename T>
+inline void unrollReverse(T&& func) {
+	if constexpr (N > 0) {
+		func(N - 1);
+		unroll<N - 1>(std::forward<T>(f));
+	}
+}
+
+template <size_t N, size_t M, typename T>
+inline void unroll(T&& func) {
+	if constexpr (N >= M) {
+		unroll<N - 1, M>(std::forward<T>(func));
+		func(N - 1);
+	}
+}
+
+template <size_t N, size_t M, typename T>
+inline void unrollReverse(T&& func) {
+	if constexpr (N >= M) {
+		func(N - 1);
+		unroll<N - 1, M>(std::forward<T>(func));
+	}
+}
+
+
 /// @brief Check if a bit is 1
 inline bool getBit(unsigned int value, uint8_t bit) noexcept {
 	return (value & (1U << bit)) != 0;
