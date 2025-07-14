@@ -30,7 +30,7 @@ public:
 		data(arr) {
 	}
 
-	inline constexpr get_n() const noexcept {
+	inline constexpr size_t get_n() const noexcept {
 		return N;
 	}
 
@@ -64,28 +64,45 @@ public:
 	}
 
 	template <size_t M>
-	array_num<maxValue(N, M)> operator+(const array_num<M>& other) const noexcept {
+	array_num<maxValue<N, M>> operator+(const array_num<M>& other) const noexcept {
 		if constexpr (N == M) {
 			array_num<N> result;
 			uint64_t carry = 0;
-			for (char i = N - 1; i >= 0; --i) {
+			unrollReverseInclusive<N - 1, 0>([](char i) {	// for (char i = N - 1; i >= 0; --i) {
 				uint64_t sum = data[i] + other.data[i] + carry;
 				result.data[i] = sum;
 				carry = (sum < data[i]) ? 1 : 0; // Check for overflow
-			}
+				});
 			return result;
 		}
 		else if constexpr (N > M) {
-			array_num <N> result = ;
+			array_num <N> result;
 			uint64_t carry = 0;
-			char i = N - 1;
-			for (; i >= N - M; --i) {
+			unrollReverseInclusive<N - 1, N - M>([](char i) {	// for (char i = N - 1; i >= N - M; --i) {
 				uint64_t sum = data[i] + other.data[i] + carry;
 				result.data[i] = sum;
 				carry = (sum < data[i]) ? 1 : 0; // Check for overflow
-			}
+			});
+			result.data[N - M - 1] = other.data[N - M - 1] + carry; // Handle the remaining bits of the larger number
+			unrollReverseInclusive<N - M - 2, 0>([](char i) {
+				carry = (result.data[i] == UINT64_MAX && carry) ? 1 : 0;
+				result.data[i] = data[i] + carry;
+				}
+			);
 		}
-		else {	// M > N
+		else {
+			array_num<M> result;
+			uint64_t carry = 0;
+			unrollReverseInclusive<M - 1, M - N>([](char i) {	// for (char i = M - 1; i >= M - N; --i) {
+				uint64_t sum = data[i] + other.data[i] + carry;
+				result.data[i] = sum;
+				carry = (sum < data[i]) ? 1 : 0; // Check for overflow
+			});
+			result.data[M - N - 1] = data[M - N - 1] + carry; // Handle the remaining bits of the larger number
+			unrollReverseInclusive<M - N - 2, 0>([](char i) {
+				carry = (result.data[i] == UINT64_MAX && carry) ? 1 : 0;
+				result.data[i] = other.data[i] + carry;
+			});
 
 		}
 	}
@@ -131,13 +148,16 @@ public:
 	bool operator==(const array_num& other) const noexcept {
 		return data == other.data;
 	}
+
+	friend std::ostream& operator<<(std::ostream& os, const array_num<N>& num) {
+		os << "0x";
+		for (int i = N - 1; i >= 0; --i) {
+			os << std::hex << num.data[i];
+		}
+		return os;
+	}
 };
 
 typedef array_num<4> uint256_t;
-
-constexpr uint256_t UINT256_T_MAX = uint256_t(
-	std::array<uint64_t, 4>({UINT64_MAX, UINT64_MAX, UINT64_MAX, UINT64_MAX }));
-
-unsigned int CeilLog2(const uint256_t& num) {
-
-}
+typedef array_num<8> uint512_t;
+typedef array_num<16> uint1024_t;

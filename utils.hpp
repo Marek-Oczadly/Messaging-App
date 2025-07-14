@@ -13,38 +13,50 @@ template <size_t N, size_t M>
 constexpr size_t maxValue = (N > M) ? N : M;
 
 
-template<size_t N, typename T>
+
+
+template<short N, typename T>
 inline void unroll(T&& func) {
+	static_assert(N >= 0 && N < 1000, "N must be non-negative and less than 1000");
 	if constexpr (N > 0) {
-		unroll<N - 1>(std::forward<T>(f));
+		unroll<N - 1>(std::forward<T>(func));
 		func(N - 1);
 	}
 }
 
-template<size_t N, typename T>
+template<short N, typename T>
 inline void unrollReverse(T&& func) {
+	static_assert(N >= 0 && N < 1000, "N must be non-negative and less than 1000");
 	if constexpr (N > 0) {
-		func(N - 1);
-		unroll<N - 1>(std::forward<T>(f));
+		func(N);
+		unrollReverse<N - 1>(std::forward<T>(func));
 	}
 }
 
-template <size_t N, size_t M, typename T>
+template <short N, short M, typename T>
 inline void unroll(T&& func) {
-	if constexpr (N >= M) {
+	static_assert(N >= M && N < 1000, "N must be greater than or equal to M and less than 1000");
+	if constexpr (N > M) {
 		unroll<N - 1, M>(std::forward<T>(func));
 		func(N - 1);
 	}
 }
 
-template <size_t N, size_t M, typename T>
+template <short N, short M, typename T>
 inline void unrollReverse(T&& func) {
-	if constexpr (N >= M) {
-		func(N - 1);
-		unroll<N - 1, M>(std::forward<T>(func));
+	if constexpr (N > M) {
+		func(N);
+		unrollReverse<N - 1, M>(std::forward<T>(func));
 	}
 }
 
+template <short N, short M = 0, typename T> 
+inline void unrollReverseInclusive(T&& func) {
+	if constexpr (N >= M) {
+		func(N);
+		unrollReverseInclusive<N - 1, M>(std::forward<T>(func));
+	}
+}
 
 /// @brief Check if a bit is 1
 inline bool getBit(unsigned int value, uint8_t bit) noexcept {
