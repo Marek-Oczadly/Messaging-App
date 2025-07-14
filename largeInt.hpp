@@ -15,6 +15,9 @@ class array_num {
 private:
 	std::array<uint64_t, N> data;
 public:
+	template <size_t M>
+	friend class array_num;
+
 	array_num() : data() {};
 	array_num(uint64_t value) {
 		data.fill(0);
@@ -78,13 +81,13 @@ public:
 		else if constexpr (N > M) {
 			array_num <N> result;
 			uint64_t carry = 0;
-			unrollReverseInclusive<N - 1, N - M>([](char i) {	// for (char i = N - 1; i >= N - M; --i) {
+			unrollReverseInclusive<N - 1, N - M>([&, other](char i) {	// for (char i = N - 1; i >= N - M; --i) {
 				uint64_t sum = data[i] + other.data[i] + carry;
 				result.data[i] = sum;
 				carry = (sum < data[i]) ? 1 : 0; // Check for overflow
 			});
 			result.data[N - M - 1] = other.data[N - M - 1] + carry; // Handle the remaining bits of the larger number
-			unrollReverseInclusive<N - M - 2, 0>([](char i) {
+			unrollReverseInclusive<N - M - 2, 0>([&](char i) {
 				carry = (result.data[i] == UINT64_MAX && carry) ? 1 : 0;
 				result.data[i] = data[i] + carry;
 				}
@@ -93,13 +96,13 @@ public:
 		else {
 			array_num<M> result;
 			uint64_t carry = 0;
-			unrollReverseInclusive<M - 1, M - N>([](char i) {	// for (char i = M - 1; i >= M - N; --i) {
+			unrollReverseInclusive<M - 1, M - N>([&](char i) {	// for (char i = M - 1; i >= M - N; --i) {
 				uint64_t sum = data[i] + other.data[i] + carry;
 				result.data[i] = sum;
 				carry = (sum < data[i]) ? 1 : 0; // Check for overflow
 			});
 			result.data[M - N - 1] = data[M - N - 1] + carry; // Handle the remaining bits of the larger number
-			unrollReverseInclusive<M - N - 2, 0>([](char i) {
+			unrollReverseInclusive<M - N - 2, 0>([&](char i) {
 				carry = (result.data[i] == UINT64_MAX && carry) ? 1 : 0;
 				result.data[i] = other.data[i] + carry;
 			});
@@ -116,6 +119,34 @@ public:
 			borrow = (diff > data[i]) ? 1 : 0; // Check for underflow
 		}
 		return result;
+	}
+
+	template <size_t M>
+	operator array_num<M>() const noexcept {
+		if constexpr (N == M) {	// No change
+			return *this;
+		}
+		else if constexpr (N > M) {
+			array_num<M> result;
+			uint64_t* pos = &result.data[0];
+			unroll<N - M, N>([&](char i) {
+				*pos = data[i];
+				++pos;
+			});
+			return result;
+		}
+		else {
+			array_num<M> result;
+			uint64_t* pos = &data[0];
+			unroll<M - N>([&](char i) {
+				result[i] = 0;
+			});
+			unroll<M - N, M>([&](char i) {
+				result[i] = *pos;
+				++pos;
+			});
+			return result;
+		}
 	}
 
 	array_num& operator+=(const array_num& other) noexcept {

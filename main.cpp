@@ -13,12 +13,14 @@ Compilation information:
 //#include "utils.hpp"
 
 
-#include <iostream>	
 #include "largeInt.hpp"
+#include <iostream>	
 
 int main()
 {
-	std::cout << "Hello, World!" << NEWL;
+	unroll<10>([](int i) {
+		std::cout << "Unrolled iteration: " << i << std::endl;
+		});
 
     return 0;
 }
