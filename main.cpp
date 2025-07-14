@@ -14,13 +14,11 @@ Compilation information:
 
 
 #include "largeInt.hpp"
+#include <chrono>
 #include <iostream>	
 
 int main()
 {
-	unroll<10>([](int i) {
-		std::cout << "Unrolled iteration: " << i << std::endl;
-		});
 
     return 0;
 }

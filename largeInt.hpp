@@ -15,6 +15,7 @@ class array_num {
 private:
 	std::array<uint64_t, N> data;
 public:
+	// Allows the use of private members within templated methods
 	template <size_t M>
 	friend class array_num;
 
@@ -71,7 +72,7 @@ public:
 		if constexpr (N == M) {
 			array_num<N> result;
 			uint64_t carry = 0;
-			unrollReverseInclusive<N - 1, 0>([](char i) {	// for (char i = N - 1; i >= 0; --i) {
+			unrollReverseInclusive<N - 1, 0>([&](char i) {	// for (char i = N - 1; i >= 0; --i) {
 				uint64_t sum = data[i] + other.data[i] + carry;
 				result.data[i] = sum;
 				carry = (sum < data[i]) ? 1 : 0; // Check for overflow
@@ -106,19 +107,52 @@ public:
 				carry = (result.data[i] == UINT64_MAX && carry) ? 1 : 0;
 				result.data[i] = other.data[i] + carry;
 			});
-
+			return result;
 		}
 	}
 
-	array_num<N> operator-(const array_num<N>& other) const noexcept {
-		array_num<N> result;
-		uint64_t borrow = 0;
-		for (char i = 3; i >= 0; --i) {
-			uint64_t diff = data[i] - other.data[i] - borrow;
-			result.data[i] = diff;
-			borrow = (diff > data[i]) ? 1 : 0; // Check for underflow
+	template <size_t M>
+	array_num<maxValue<M, N>> operator-(const array_num<M>& other) const noexcept {
+		if constexpr (N == M) {
+			array_num<N> result;
+			uint64_t borrow = 0;
+			unrollReverseInclusive<N - 1, 0>([&](char i) {	// for (char i = N - 1; i >= 0; --i) {
+				uint64_t diff = data[i] - other.data[i] - borrow;
+				result.data[i] = diff;
+				borrow = (diff > data[i]) ? 1 : 0; // Check for underflow
+				});
+			return result;
 		}
-		return result;
+		else if constexpr (N > M) {
+			array_num<N> result;
+			uint64_t borrow = 0;
+			unrollReverseInclusive<N - 1, N - M>([&](char i) {	// for (char i = N - 1; i >= N - M; --i) {
+				uint64_t diff = data[i] - other.data[i] - borrow;
+				result.data[i] = diff;
+				borrow = (diff > data[i]) ? 1 : 0; // Check for underflow
+				});
+			result.data[N - M - 1] = data[N - M - 1] - borrow; // Handle the remaining bits of the larger number
+			unrollReverseInclusive<N - M - 2, 0>([&](char i) {
+				borrow = (result.data[i] == UINT64_MAX && borrow) ? 1 : 0;
+				result.data[i] = data[i] - borrow;
+				});
+			return result;
+		}
+		else {
+			array_num<M> result;
+			uint64_t borrow = 0;
+			unrollReverseInclusive<M - 1, M - N>([&](char i) {	// for (char i = M - 1; i >= M - N; --i) {
+				uint64_t diff = other.data[i] - data[i] - borrow;
+				result.data[i] = diff;
+				borrow = (diff > other.data[i]) ? 1 : 0; // Check for underflow
+				});
+			result.data[M - N - 1] = other.data[M - N - 1] + borrow; // Handle the remaining bits of the larger number
+			unrollReverseInclusive < M - N - 2, 0>([&](char i) {
+				borrow = (result.data[i] == UINT64_MAX && borrow) ? 1 : 0;
+				result.data[i] = other.data[i] - borrow;
+				});
+			return result;
+		}
 	}
 
 	template <size_t M>
