@@ -6,16 +6,28 @@
 #include <cstdint>
 #include <bit>
 
+#if defined(_MSC_VER)
+	#include <intrin.h>
+#endif
+
 constexpr const char NEWL = '\n';
 constexpr const char TAB = '\t';
 
 template <size_t N, size_t M>
 constexpr size_t maxValue = (N > M) ? N : M;
 
+template<typename T>
+concept AddableAndSubtractable = requires(T a, T b) {
+	{ a + b } -> std::same_as<T>;
+	{ a - b } -> std::same_as<T>;
+};
 
 
-
-template<short N, typename T>
+/// @brief 
+/// @tparam T 
+/// @tparam N 
+/// @param func Lambda function to be run 
+template<short N, AddableAndSubtractable T>
 inline void unroll(T&& func) {
 	static_assert(N >= 0 && N < 1000, "N must be non-negative and less than 1000");
 	if constexpr (N > 0) {
@@ -24,7 +36,7 @@ inline void unroll(T&& func) {
 	}
 }
 
-template<short N, typename T>
+template<short N, AddableAndSubtractable T>
 inline void unrollReverse(T&& func) {
 	static_assert(N >= 0 && N < 1000, "N must be non-negative and less than 1000");
 	if constexpr (N > 0) {
@@ -33,7 +45,7 @@ inline void unrollReverse(T&& func) {
 	}
 }
 
-template <short N, short M, typename T>
+template <short N, short M, AddableAndSubtractable T>
 inline void unroll(T&& func) {
 	static_assert(N >= M && N < 1000, "N must be greater than or equal to M and less than 1000");
 	if constexpr (N > M) {
@@ -42,7 +54,7 @@ inline void unroll(T&& func) {
 	}
 }
 
-template <short N, short M, typename T>
+template <short N, short M, AddableAndSubtractable T>
 inline void unrollReverse(T&& func) {
 	if constexpr (N > M) {
 		func(N);
@@ -50,7 +62,7 @@ inline void unrollReverse(T&& func) {
 	}
 }
 
-template <short N, short M = 0, typename T> 
+template <short N, short M = 0, AddableAndSubtractable T> 
 inline void unrollReverseInclusive(T&& func) {
 	if constexpr (N >= M) {
 		func(N);
@@ -59,65 +71,65 @@ inline void unrollReverseInclusive(T&& func) {
 }
 
 /// @brief Check if a bit is 1
-inline bool getBit(unsigned int value, uint8_t bit) noexcept {
+inline bool getBit(unsigned int value, const uint8_t bit) noexcept {
 	return (value & (1U << bit)) != 0;
 }
 
 /// @brief Check if a bit is 1
-inline bool getBit(int value, uint8_t bit) noexcept {
+inline bool getBit(int value, const uint8_t bit) noexcept {
 	return (value & (1U << bit)) != 0;
 }
 
 /// @brief Check if a bit is 1
-inline bool getBit(unsigned short value, uint8_t bit) noexcept {
+inline bool getBit(unsigned short value, const uint8_t bit) noexcept {
 	return (value & (1U << bit)) != 0;
 }
 
 /// @brief Set a bit to 1
-inline void setBit(int& value, uint8_t bit) noexcept {
+inline void setBit(int& value, const uint8_t bit) noexcept {
 	value |= (1U << bit);
 }
 
 /// @brief Set a bit to 1
-inline void setBit(unsigned int& value, uint8_t bit) noexcept {
+inline void setBit(unsigned int& value, const uint8_t bit) noexcept {
 	value |= (1U << bit);
 }
 
 /// @brief Set a bit to 1
-inline void setBit(unsigned short& value, uint8_t bit) noexcept {
+inline void setBit(unsigned short& value, const uint8_t bit) noexcept {
 	value |= (1U << bit);
 }
 
 /// @brief Clear a bit (set to 0)
-inline void clearBit(int& value, uint8_t bit) noexcept {
+inline void clearBit(int& value, const uint8_t bit) noexcept {
 	value &= ~(1U << bit);
 }
 
 /// @brief Clear a bit (set to 0)
-inline void clearBit(unsigned short& value, uint8_t bit) noexcept {
+inline void clearBit(unsigned short& value, const uint8_t bit) noexcept {
 	value &= ~(1U << bit);
 }
 
 
 /// @brief Clear a bit (set to 0)
-inline void clearBit(unsigned int& value, uint8_t bit) noexcept {
+inline void clearBit(unsigned int& value, const uint8_t bit) noexcept {
 	value &= ~(1U << bit);
 }
 
 /// @brief Set a bit to 0 or 1 based on the state
-inline void setBit(int& value, uint8_t bit, bool state) noexcept {
+inline void setBit(int& value, const uint8_t bit, const bool state) noexcept {
 	if (state) setBit(value, bit);
 	else clearBit(value, bit);
 }
 
 /// @brief Set a bit to 0 or 1 based on the state
-inline void setBit(unsigned short& value, uint8_t bit, bool state) noexcept {
+inline void setBit(unsigned short& value, const uint8_t bit, const bool state) noexcept {
 	if (state) setBit(value, bit);
 	else clearBit(value, bit);
 }
 
 /// @brief Set a bit to 0 or 1 based on the state
-inline void setBit(unsigned int& value, uint8_t bit, bool state) noexcept {
+inline void setBit(unsigned int& value, const uint8_t bit, const bool state) noexcept {
 	if (state) setBit(value, bit);
 	else clearBit(value, bit);
 }
@@ -140,4 +152,27 @@ unsigned char floorLog2(const uint32_t num) noexcept {
 unsigned char floorLog2(const uint64_t num) noexcept {
 	if (num == 0) return -1; // Log2(0) is undefined, return 255 for safety
 	return std::bit_width(num) - 1;
+}
+
+inline void addWithOverflow(uint64_t& a, const uint64_t b, uint8_t& carry) noexcept {
+#if defined(_MSC_VER)
+	carry = _addcarry_u64(carry, a, b, &a);	// Fastest - uses MSVC intrinsic
+#elif defined(__GNUC__) || defined(__clang__)
+	uint64_t temp;
+	bool c1 = __builtin_add_overflow(a, b, &temp);	// Uses GCC/Clang intrinsic
+	bool c2 = __builtin_add_overflow(temp, carry, &a);
+	carry = static_cast<uint8_t>(c1 || c2);
+#else	// Manual arithmetic if compiler can't be determined
+	uint64_t temp = a + b;
+	carry = (temp < a) ? 1 : 0;
+	a = temp + carry;
+	carry |= (a < temp) ? 1 : 0;
+#endif
+}
+
+inline void addWithOverflow(const uint64_t a, const uint64_t b, uint64_t& sum, uint8_t& carry) noexcept {
+#if defined(_MSC_VER)
+	carry = _addcarry_u64(carry, a, b, &sum);
+#endif
+
 }

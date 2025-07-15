@@ -91,8 +91,7 @@ public:
 			unrollReverseInclusive<N - M - 2, 0>([&](char i) {
 				carry = (result.data[i] == UINT64_MAX && carry) ? 1 : 0;
 				result.data[i] = data[i] + carry;
-				}
-			);
+			});
 		}
 		else {
 			uint_array<M> result;
@@ -183,13 +182,23 @@ public:
 		}
 	}
 
-	uint_array& operator+=(const uint_array& other) noexcept {
-		uint64_t carry = 0;
-		for (char i = 3; i >= 0; --i) {
-			uint64_t sum = data[i] + other.data[i] + carry;
-			data[i] = sum;
-			carry = (sum < data[i]) ? 1 : 0; // Check for overflow
+	template <size_t M>
+	uint_array<N>& operator+=(const uint_array<M>& other) noexcept {
+		if constexpr (M == N) {
+			uint64_t carry = 0;
+			unrollReverseInclusive<N - 1, 0>([&](char i) {	// for (char i = N - 1; i >= 0; --i) {
+				uint64_t sum = data[i] + other.data[i] + carry;
+				data[i] = sum;
+				carry = (sum < data[i]) ? 1 : 0; // Check for overflow
+			});
 		}
+		else if constexpr (M < N) {
+			uint64_t carry = 0;
+			unrollReverseInclusive<N - 1, N - M>([&](char i) {
+
+				});
+		}
+
 		return *this;
 	}
 
@@ -215,6 +224,7 @@ public:
 	}
 
 	friend std::ostream& operator<<(std::ostream& os, const uint_array<N>& num) {
+		// Temporary - will print in base 10 soon
 		os << "0x";
 		for (int i = N - 1; i >= 0; --i) {
 			os << std::hex << num.data[i];

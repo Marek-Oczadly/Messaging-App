@@ -10,8 +10,6 @@ Compilation information:
 > MacOS - Clang
 */
 
-//#include "utils.hpp"
-
 
 #include "largeInt.hpp"
 #include <chrono>
