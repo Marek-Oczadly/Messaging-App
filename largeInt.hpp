@@ -9,11 +9,18 @@
 #include <initializer_list>
 #include "utils.hpp"
 
+// TODO: Switch the direction of significant bits so it is more cache efficient. Abstract in inputs and outputs
 
 /// @brief A 256-bit unsigned integer class that can be used for large integer arithmetic
 template <char N>
 class uint_array {
-	static_assert(N > 1 && N <= 127, "N must be between or including 2 and 127");
+	static_assert(N > 1 && N < 128, "N must be between or including 2 and 127");
+	/*
+	*	======================= REPRESENTATION =======================
+	* Size N: 1 < N < 128 (due to char limits and would be inefficient)
+	* { x_0,    x_1,    x_2,    x_3,    ...,   x_(N-1) }
+	* ^ least significant (2^(64*0))         ^ most significant (2^(64*(N-1)))
+	*/
 private:
 	std::array<uint64_t, N> data;
 public:
@@ -21,32 +28,39 @@ public:
 	template <char M>
 	friend class uint_array;
 
-	uint_array() : data() {};
+	uint_array() : data() {};	// Initialized with all 0s
 	uint_array(uint64_t value) : data() {
-		data[N - 1] = value;
+		data[0] = value;
 	}
-	uint_array(const std::array<uint64_t, N>& arr) :
-		data(arr) {
+	uint_array(const std::array<uint64_t, N>& arr) : data(arr) {
+		for ()
 	};
 	uint_array(const std::initializer_list<uint64_t>& list) : data() {
 		if (list.size() > N) {
 			throw std::out_of_range("Initializer list size exceeds array size");
 		}
 		auto it = list.begin();
-		for (int i = N - list.size(); i < N; ++i) {
+		for (int i = 0; i < list.size(); ++i) {
 			data[i] = *it;
 			++it;
 		}
 	}
 
-	uint_array(const uint_array<N>& other) :
-		data(other.data) {
-	};
-	constexpr uint_array(const std::array<uint64_t, N> arr) noexcept :
-		data(arr) {
+	template <char M>
+	uint_array(const uint_array<M>& other) noexcept : data() {
+		if constexpr (M == N) {
+			data = other.data;	// Direct copy if sizes match
+		}
+		else {
+			unroll<minValue<N, M>>([&](char i) {	// for (char i = 0; i < M; ++i) {
+				data[i] = other.data[i];	// Copy only the first M elements
+			});
+		}
 	}
 
-	inline constexpr char get_n() const noexcept {
+	constexpr uint_array(const std::array<uint64_t, N> arr) : data(arr) {}
+
+	inline constexpr char size() const noexcept {
 		return N;
 	}
 	uint64_t operator[](unsigned char index) const {
@@ -57,26 +71,25 @@ public:
 	}
 
 	uint_array<N>& operator++() noexcept {
-		for (int i = N - 1; i >= 0; --i) {
-			if (++data[i] != 0)
-				break;
-		}
-		return *this;
+		unroll<N>([&](char i) {
+			if (++data[i] != 0) { 
+				return *this;
+			}
+		});
 	}
 
 	uint_array<N> operator++(int) noexcept {
-		uint_array temp = *this;
+		uint_array<N> temp = *this;
 		++(*this);
 		return temp;
 	}
 
 	uint_array<N>& operator--() noexcept {
-		for (char i = N - 1; i >= 0; --i) {
+		unroll<N>([&](char i) {
 			if (--data[i] != UINT64_MAX) {
-				break;
+				return *this;
 			}
-		}
-		return *this;
+		});
 	}
 
 	uint_array<N> operator--(int) noexcept {
@@ -111,6 +124,7 @@ public:
 		else {
 			uint_array<M> result;
 			uint64_t carry = 0;
+			uint64_t* end_n
 			unrollReverseInclusive<M - 1, M - N>([&](char i) {	// for (char i = M - 1; i >= M - N; --i) {
 				addWithOverflow(other.data[i], data[i], result.data[i], carry);	// Uses the addWithOverflow function to handle overflow
 			});

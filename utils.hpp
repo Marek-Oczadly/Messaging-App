@@ -16,6 +16,9 @@ constexpr const char TAB = '\t';
 template <size_t N, size_t M>
 constexpr size_t maxValue = (N > M) ? N : M;
 
+template <size_t N, size_t M>
+constexpr size_t minValue = (N < M) ? N : M;
+
 /// @brief 
 /// @tparam T 
 /// @tparam N 
