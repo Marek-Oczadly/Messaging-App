@@ -4,38 +4,56 @@
 
 #pragma once
 #include <array>
+#include <ostream>
 #include <iostream>
+#include <initializer_list>
 #include "utils.hpp"
 
 
 /// @brief A 256-bit unsigned integer class that can be used for large integer arithmetic
-template <size_t N>
+template <char N>
 class uint_array {
 	static_assert(N > 1 && N <= 127, "N must be between or including 2 and 127");
 private:
 	std::array<uint64_t, N> data;
 public:
 	// Allows the use of private members within templated methods
-	template <size_t M>
+	template <char M>
 	friend class uint_array;
 
 	uint_array() : data() {};
-	uint_array(uint64_t value) {
-		data.fill(0);
+	uint_array(uint64_t value) : data() {
 		data[N - 1] = value;
 	}
 	uint_array(const std::array<uint64_t, N>& arr) :
 		data(arr) {
 	};
-	uint_array(const uint_array& other) :
+	uint_array(const std::initializer_list<uint64_t>& list) : data() {
+		if (list.size() > N) {
+			throw std::out_of_range("Initializer list size exceeds array size");
+		}
+		auto it = list.begin();
+		for (int i = N - list.size(); i < N; ++i) {
+			data[i] = *it;
+			++it;
+		}
+	}
+
+	uint_array(const uint_array<N>& other) :
 		data(other.data) {
 	};
 	constexpr uint_array(const std::array<uint64_t, N> arr) noexcept :
 		data(arr) {
 	}
 
-	inline constexpr size_t get_n() const noexcept {
+	inline constexpr char get_n() const noexcept {
 		return N;
+	}
+	uint64_t operator[](unsigned char index) const {
+		if (index >= N) {
+			throw std::out_of_range("Index out of range");
+		}
+		return data[index];
 	}
 
 	uint_array<N>& operator++() noexcept {
@@ -67,25 +85,22 @@ public:
 		return temp;
 	}
 
-	template <size_t M>
+	template <char M>
 	uint_array<maxValue<N, M>> operator+(const uint_array<M>& other) const noexcept {
 		if constexpr (N == M) {
 			uint_array<N> result;
 			uint64_t carry = 0;
 			unrollReverseInclusive<N - 1, 0>([&](char i) {	// for (char i = N - 1; i >= 0; --i) {
-				uint64_t sum = data[i] + other.data[i] + carry;
-				result.data[i] = sum;
-				carry = (sum < data[i]) ? 1 : 0; // Check for overflow
-				});
+				std::cout << static_cast<int>(i) << std::endl;
+				addWithOverflow(other.data[i], data[i], result.data[i], carry);	// Uses the addWithOverflow function to handle overflow
+			});
 			return result;
 		}
 		else if constexpr (N > M) {
 			uint_array <N> result;
 			uint64_t carry = 0;
 			unrollReverseInclusive<N - 1, N - M>([&, other](char i) {	// for (char i = N - 1; i >= N - M; --i) {
-				uint64_t sum = data[i] + other.data[i] + carry;
-				result.data[i] = sum;
-				carry = (sum < data[i]) ? 1 : 0; // Check for overflow
+				addWithOverflow(other.data[i], data[i], result.data[i], carry);	// Uses the addWithOverflow function to handle overflow
 			});
 			result.data[N - M - 1] = other.data[N - M - 1] + carry; // Handle the remaining bits of the larger number
 			unrollReverseInclusive<N - M - 2, 0>([&](char i) {
@@ -97,9 +112,7 @@ public:
 			uint_array<M> result;
 			uint64_t carry = 0;
 			unrollReverseInclusive<M - 1, M - N>([&](char i) {	// for (char i = M - 1; i >= M - N; --i) {
-				uint64_t sum = data[i] + other.data[i] + carry;
-				result.data[i] = sum;
-				carry = (sum < data[i]) ? 1 : 0; // Check for overflow
+				addWithOverflow(other.data[i], data[i], result.data[i], carry);	// Uses the addWithOverflow function to handle overflow
 			});
 			result.data[M - N - 1] = data[M - N - 1] + carry; // Handle the remaining bits of the larger number
 			unrollReverseInclusive<M - N - 2, 0>([&](char i) {
@@ -110,7 +123,7 @@ public:
 		}
 	}
 
-	template <size_t M>
+	template <char M>
 	uint_array<maxValue<M, N>> operator-(const uint_array<M>& other) const noexcept {
 		if constexpr (N == M) {
 			uint_array<N> result;
@@ -154,7 +167,7 @@ public:
 		}
 	}
 
-	template <size_t M>
+	template <char M>
 	operator uint_array<M>() const noexcept {
 		if constexpr (N == M) {	// No change
 			return *this;
@@ -182,7 +195,7 @@ public:
 		}
 	}
 
-	template <size_t M>
+	template <char M>
 	uint_array<N>& operator+=(const uint_array<M>& other) noexcept {
 		if constexpr (M == N) {
 			uint64_t carry = 0;
@@ -225,9 +238,8 @@ public:
 
 	friend std::ostream& operator<<(std::ostream& os, const uint_array<N>& num) {
 		// Temporary - will print in base 10 soon
-		os << "0x";
-		for (int i = N - 1; i >= 0; --i) {
-			os << std::hex << num.data[i];
+		for (int i = 0; i < N; ++i) {
+			os << num.data[i] << ' ';
 		}
 		return os;
 	}

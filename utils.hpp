@@ -147,14 +147,14 @@ unsigned char floorLog2(const uint64_t num) noexcept {
 	return std::bit_width(num) - 1;
 }
 
-inline void addWithOverflow(uint64_t& a, const uint64_t b, uint8_t& carry) noexcept {
+inline void addWithOverflow(uint64_t& a, const uint64_t b, uint64_t& carry) noexcept {
 #if defined(_MSC_VER)
 	carry = _addcarry_u64(carry, a, b, &a);	// Fastest - uses MSVC intrinsic
 #elif defined(__GNUC__) || defined(__clang__)
 	uint64_t temp;
 	bool c1 = __builtin_add_overflow(a, b, &temp);	// Uses GCC/Clang intrinsic
 	bool c2 = __builtin_add_overflow(temp, carry, &a);
-	carry = static_cast<uint8_t>(c1 || c2);
+	carry = static_cast<uint64_t>(c1 || c2);
 #else	// Manual arithmetic if compiler can't be determined
 	uint64_t temp = a + b;
 	carry = (temp < a) ? 1 : 0;
@@ -163,9 +163,22 @@ inline void addWithOverflow(uint64_t& a, const uint64_t b, uint8_t& carry) noexc
 #endif
 }
 
-inline void addWithOverflow(const uint64_t a, const uint64_t b, uint64_t& sum, uint8_t& carry) noexcept {
-#if defined(_MSC_VER)
+/// @brief adds two 64-bit integers and a carry. Optimised for MSVC and G++/Clang
+/// @param a First number being added
+/// @param b Second number being added
+/// @param sum A reference to where the sum is being stored
+/// @param carry 
+inline void addWithOverflow(const uint64_t a, const uint64_t b, uint64_t& sum, uint64_t& carry) noexcept {
+#if defined(_MSC_VER)	// MSVC - fastest
 	carry = _addcarry_u64(carry, a, b, &sum);
+#elif defined(__GNUC__) || defined(__clang__)
+	bool c1 = __builtin_add_overflow(a, b, &sum);	// Uses GCC/Clang intrinsic
+	bool c2 = __builtin_add_overflow(sum, carry, &sum);
+	carry = static_cast<uint8_t>(c1 || c2);
+#else	// Manual arithmetic if compiler can't be determined
+	uint64_t temp = a + b;
+	bool c1 = (temp < a);	// Check for overflow
+	sum = temp + carry;
+	carry = static_cast<uint64_t>(c1 || (sum < temp));	// Check if carry occurred
 #endif
-
 }
