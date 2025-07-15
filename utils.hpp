@@ -16,18 +16,11 @@ constexpr const char TAB = '\t';
 template <size_t N, size_t M>
 constexpr size_t maxValue = (N > M) ? N : M;
 
-template<typename T>
-concept AddableAndSubtractable = requires(T a, T b) {
-	{ a + b } -> std::same_as<T>;
-	{ a - b } -> std::same_as<T>;
-};
-
-
 /// @brief 
 /// @tparam T 
 /// @tparam N 
 /// @param func Lambda function to be run 
-template<short N, AddableAndSubtractable T>
+template<short N, typename T>
 inline void unroll(T&& func) {
 	static_assert(N >= 0 && N < 1000, "N must be non-negative and less than 1000");
 	if constexpr (N > 0) {
@@ -36,7 +29,7 @@ inline void unroll(T&& func) {
 	}
 }
 
-template<short N, AddableAndSubtractable T>
+template<short N, typename T>
 inline void unrollReverse(T&& func) {
 	static_assert(N >= 0 && N < 1000, "N must be non-negative and less than 1000");
 	if constexpr (N > 0) {
@@ -45,7 +38,7 @@ inline void unrollReverse(T&& func) {
 	}
 }
 
-template <short N, short M, AddableAndSubtractable T>
+template <short N, short M, typename T>
 inline void unroll(T&& func) {
 	static_assert(N >= M && N < 1000, "N must be greater than or equal to M and less than 1000");
 	if constexpr (N > M) {
@@ -54,7 +47,7 @@ inline void unroll(T&& func) {
 	}
 }
 
-template <short N, short M, AddableAndSubtractable T>
+template <short N, short M, typename T>
 inline void unrollReverse(T&& func) {
 	if constexpr (N > M) {
 		func(N);
@@ -62,7 +55,7 @@ inline void unrollReverse(T&& func) {
 	}
 }
 
-template <short N, short M = 0, AddableAndSubtractable T> 
+template <short N, short M = 0, typename T> 
 inline void unrollReverseInclusive(T&& func) {
 	if constexpr (N >= M) {
 		func(N);
