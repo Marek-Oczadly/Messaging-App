@@ -28,13 +28,12 @@ public:
 	template <char M>
 	friend class uint_array;
 
-	uint_array() : data() {};	// Initialized with all 0s
+	uint_array() noexcept = default;
 	uint_array(uint64_t value) : data() {
 		data[0] = value;
 	}
-	uint_array(const std::array<uint64_t, N>& arr) : data(arr) {
-		for ()
-	};
+	uint_array(const std::array<uint64_t, N>& arr) noexcept : data(arr) {};
+
 	uint_array(const std::initializer_list<uint64_t>& list) : data() {
 		if (list.size() > N) {
 			throw std::out_of_range("Initializer list size exceeds array size");
@@ -103,35 +102,32 @@ public:
 		if constexpr (N == M) {
 			uint_array<N> result;
 			uint64_t carry = 0;
-			unrollReverseInclusive<N - 1, 0>([&](char i) {	// for (char i = N - 1; i >= 0; --i) {
-				std::cout << static_cast<int>(i) << std::endl;
+			unroll<N>([&](char i) {	// for (char i = 0; i < N; ++i) {
 				addWithOverflow(other.data[i], data[i], result.data[i], carry);	// Uses the addWithOverflow function to handle overflow
 			});
 			return result;
 		}
-		else if constexpr (N > M) {
-			uint_array <N> result;
+		else if constexpr(N > M) {
+			uint_array<N> result;
 			uint64_t carry = 0;
-			unrollReverseInclusive<N - 1, N - M>([&, other](char i) {	// for (char i = N - 1; i >= N - M; --i) {
-				addWithOverflow(other.data[i], data[i], result.data[i], carry);	// Uses the addWithOverflow function to handle overflow
+			unroll<M>([&](char i) {
+				addWithOverflow(other.data[i], data[i], result.data[i], carry);
 			});
-			result.data[N - M - 1] = other.data[N - M - 1] + carry; // Handle the remaining bits of the larger number
-			unrollReverseInclusive<N - M - 2, 0>([&](char i) {
-				carry = (result.data[i] == UINT64_MAX && carry) ? 1 : 0;
+			unroll<M + 1, N>([&](char i) {
 				result.data[i] = data[i] + carry;
+				carry = static_cast<uint64_t>(result.data[i] < data[i]); // Check for overflow
 			});
+			return result;
 		}
 		else {
 			uint_array<M> result;
 			uint64_t carry = 0;
-			uint64_t* end_n
-			unrollReverseInclusive<M - 1, M - N>([&](char i) {	// for (char i = M - 1; i >= M - N; --i) {
-				addWithOverflow(other.data[i], data[i], result.data[i], carry);	// Uses the addWithOverflow function to handle overflow
+			unroll<N>([&](char i) {
+				addWithOverflow(other.data[i], data[i], result.data[i], carry);
 			});
-			result.data[M - N - 1] = data[M - N - 1] + carry; // Handle the remaining bits of the larger number
-			unrollReverseInclusive<M - N - 2, 0>([&](char i) {
-				carry = (result.data[i] == UINT64_MAX && carry) ? 1 : 0;
+			unroll<N + 1, M>([&](char i) {
 				result.data[i] = other.data[i] + carry;
+				carry = static_cast<uint64_t>(result.data[i] < other.data[i]); // Check for overflow
 			});
 			return result;
 		}
@@ -243,6 +239,12 @@ public:
 		if (this != &other) {
 			data = other.data;
 		}
+		return *this;
+	}
+
+	uint_array& operator=(const uint64_t other) noexcept {
+		data.fill(0);
+		data[0] = other;
 		return *this;
 	}
 

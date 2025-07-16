@@ -11,19 +11,13 @@ Compilation information:
 */
 
 
-#include "largeInt.hpp"
-#include <chrono>
-#include <iostream>	
+#include <iostream>
+#include "utils.hpp"
 
 int main()
 {
-	uint256_t num1{ UINT64_MAX, 64 };
-	uint512_t num2{ 64, 64, 64, 64 };
-
-	auto result = num1 + num2;
-	
-	std::cout << "num1: " << num1 << std::endl;
-	std::cout << "num2: " << num2 << std::endl;
-	std::cout << "result: " << result << std::endl;
+	unroll<3, 10>([](char i) {
+		std::cout << static_cast<int>(i) << NEWL;
+		});
     return 0;
 }

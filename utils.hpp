@@ -19,9 +19,9 @@ constexpr size_t maxValue = (N > M) ? N : M;
 template <size_t N, size_t M>
 constexpr size_t minValue = (N < M) ? N : M;
 
-/// @brief 
-/// @tparam T 
-/// @tparam N 
+/// @brief Unrolls a loop at compile time
+/// @tparam T The type of argument to the function
+/// @tparam N How many iterations - starts at 0 ends at N - 1
 /// @param func Lambda function to be run 
 template<short N, typename T>
 inline void unroll(T&& func) {
@@ -43,10 +43,10 @@ inline void unrollReverse(T&& func) {
 
 template <short N, short M, typename T>
 inline void unroll(T&& func) {
-	static_assert(N >= M && N < 1000, "N must be greater than or equal to M and less than 1000");
-	if constexpr (N > M) {
-		unroll<N - 1, M>(std::forward<T>(func));
-		func(N - 1);
+	static_assert(N < 1000 && M < 1000, "N and M must be less than 1000");
+	if constexpr (M > N) {
+		unroll<N, M - 1>(std::forward<T>(func));
+		func(M - 1);
 	}
 }
 
