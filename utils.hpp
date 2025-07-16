@@ -150,14 +150,14 @@ unsigned char floorLog2(const uint64_t num) noexcept {
 	return std::bit_width(num) - 1;
 }
 
-inline void addWithOverflow(uint64_t& a, const uint64_t b, uint64_t& carry) noexcept {
+inline void addWithOverflow(uint64_t& a, const uint64_t b, unsigned char& carry) noexcept {
 #if defined(_MSC_VER)
 	carry = _addcarry_u64(carry, a, b, &a);	// Fastest - uses MSVC intrinsic
 #elif defined(__GNUC__) || defined(__clang__)
 	uint64_t temp;
 	bool c1 = __builtin_add_overflow(a, b, &temp);	// Uses GCC/Clang intrinsic
 	bool c2 = __builtin_add_overflow(temp, carry, &a);
-	carry = static_cast<uint64_t>(c1 || c2);
+	carry = static_cast<unsigned char>(c1 || c2);
 #else	// Manual arithmetic if compiler can't be determined
 	uint64_t temp = a + b;
 	carry = (temp < a) ? 1 : 0;
@@ -171,17 +171,49 @@ inline void addWithOverflow(uint64_t& a, const uint64_t b, uint64_t& carry) noex
 /// @param b Second number being added
 /// @param sum A reference to where the sum is being stored
 /// @param carry 
-inline void addWithOverflow(const uint64_t a, const uint64_t b, uint64_t& sum, uint64_t& carry) noexcept {
+inline void addWithOverflow(const uint64_t a, const uint64_t b, uint64_t& sum, unsigned char& carry) noexcept {
 #if defined(_MSC_VER)	// MSVC - fastest
 	carry = _addcarry_u64(carry, a, b, &sum);
 #elif defined(__GNUC__) || defined(__clang__)
 	bool c1 = __builtin_add_overflow(a, b, &sum);	// Uses GCC/Clang intrinsic
 	bool c2 = __builtin_add_overflow(sum, carry, &sum);
-	carry = static_cast<uint8_t>(c1 || c2);
+	carry = static_cast<unsigned char>(c1 || c2);
 #else	// Manual arithmetic if compiler can't be determined
 	uint64_t temp = a + b;
 	bool c1 = (temp < a);	// Check for overflow
 	sum = temp + carry;
-	carry = static_cast<uint64_t>(c1 || (sum < temp));	// Check if carry occurred
+	carry = static_cast<unsigned char>(c1 || (sum < temp));	// Check if carry occurred
+#endif
+}
+
+inline void subtractWithBorrow(uint64_t& a, const uint64_t b, unsigned char& borrow) noexcept {
+#if defined(_MSC_VER)
+	borrow = _subborrow_u64(borrow, a, b, &a);	// Fastest - uses MSVC intrinsic
+#elif defined(__GNUC__) || defined(__clang__)
+	uint64_t temp;
+	bool c1 = __builtin_sub_overflow(a, b, &temp);	// Uses GCC/Clang intrinsic
+	bool c2 = __builtin_sub_overflow(temp, borrow, &a);
+	borrow = static_cast<unsigned char>(c1 || c2);
+#else 
+	uint64_t temp = a - b;
+	borrow = (a < b) ? 1 : 0;
+
+	a = temp - borrow;
+	borrow |= (temp < borrow) ? 1 : 0;	// Check if borrow occurred
+#endif
+}
+
+inline void subtractWithBorrow(const uint64_t a, const uint64_t b, uint64_t& result, unsigned char& borrow) noexcept {
+#if defined(_MSC_VER)	// MSVC - fastest
+	borrow = _subborrow_u64(borrow, a, b, &result);
+#elif defined(__GNUC__) || defined(__clang__)
+	bool c1 = __builtin_sub_overflow(a, b, &result);	// Uses GCC/Clang intrinsic
+	bool c2 = __builtin_sub_overflow(result, borrow, &result);
+	borrow = static_cast<unsigned char>(c1 || c2);
+#else	// Manual arithmetic if compiler can't be determined
+	uint16_t temp = a - b;
+	borrow = (a < b) ? 1 : 0;	// Check for underflow
+	result = temp - borrow;
+	borrow |= (temp < borrow) ? 1 : 0;	// Check if borrow occurred
 #endif
 }

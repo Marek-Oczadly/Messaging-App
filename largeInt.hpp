@@ -101,7 +101,7 @@ public:
 	uint_array<maxValue<N, M>> operator+(const uint_array<M>& other) const noexcept {
 		if constexpr (N == M) {
 			uint_array<N> result;
-			uint64_t carry = 0;
+			unsigned char carry = 0;
 			unroll<N>([&](char i) {	// for (char i = 0; i < N; ++i) {
 				addWithOverflow(other.data[i], data[i], result.data[i], carry);	// Uses the addWithOverflow function to handle overflow
 			});
@@ -109,25 +109,25 @@ public:
 		}
 		else if constexpr(N > M) {
 			uint_array<N> result;
-			uint64_t carry = 0;
+			unsigned char carry = 0;
 			unroll<M>([&](char i) {
 				addWithOverflow(other.data[i], data[i], result.data[i], carry);
 			});
 			unroll<M + 1, N>([&](char i) {
 				result.data[i] = data[i] + carry;
-				carry = static_cast<uint64_t>(result.data[i] < data[i]); // Check for overflow
+				carry = (data[i] == UINT64_MAX && carry) ? 1 : 0;
 			});
 			return result;
 		}
 		else {
 			uint_array<M> result;
-			uint64_t carry = 0;
+			unsigned char carry = 0;
 			unroll<N>([&](char i) {
 				addWithOverflow(other.data[i], data[i], result.data[i], carry);
 			});
 			unroll<N + 1, M>([&](char i) {
 				result.data[i] = other.data[i] + carry;
-				carry = static_cast<uint64_t>(result.data[i] < other.data[i]); // Check for overflow
+				carry = (other.data[i] == UINT64_MAX && carry) ? 1 : 0;
 			});
 			return result;
 		}
@@ -137,44 +137,36 @@ public:
 	uint_array<maxValue<M, N>> operator-(const uint_array<M>& other) const noexcept {
 		if constexpr (N == M) {
 			uint_array<N> result;
-			uint64_t borrow = 0;
-			unrollReverseInclusive<N - 1, 0>([&](char i) {	// for (char i = N - 1; i >= 0; --i) {
-				uint64_t diff = data[i] - other.data[i] - borrow;
-				result.data[i] = diff;
-				borrow = (diff > data[i]) ? 1 : 0; // Check for underflow
-				});
+			unsigned char borrow = 0;
+			unroll<N>([&](char i) {
+				subtractWithBorrow(data[i], other.data[i], result.data[i], borrow);
+			});
 			return result;
 		}
 		else if constexpr (N > M) {
 			uint_array<N> result;
-			uint64_t borrow = 0;
-			unrollReverseInclusive<N - 1, N - M>([&](char i) {	// for (char i = N - 1; i >= N - M; --i) {
-				uint64_t diff = data[i] - other.data[i] - borrow;
-				result.data[i] = diff;
-				borrow = (diff > data[i]) ? 1 : 0; // Check for underflow
-				});
-			result.data[N - M - 1] = data[N - M - 1] - borrow; // Handle the remaining bits of the larger number
-			unrollReverseInclusive<N - M - 2, 0>([&](char i) {
-				borrow = (result.data[i] == UINT64_MAX && borrow) ? 1 : 0;
+			unsigned char borrow = 0;
+			unroll<M>([&](char i) {
+				subtractWithBorrow(data[i], other.data[i], result.data[i], borrow);
+			});
+			unroll<M + 1, N>([&](char i) {
 				result.data[i] = data[i] - borrow;
-				});
+				borrow = (borrow && data[i] == 0) ? 1 : 0; // Check for underflow
+			});
 			return result;
 		}
 		else {
 			uint_array<M> result;
-			uint64_t borrow = 0;
-			unrollReverseInclusive<M - 1, M - N>([&](char i) {	// for (char i = M - 1; i >= M - N; --i) {
-				uint64_t diff = other.data[i] - data[i] - borrow;
-				result.data[i] = diff;
-				borrow = (diff > other.data[i]) ? 1 : 0; // Check for underflow
-				});
-			result.data[M - N - 1] = other.data[M - N - 1] + borrow; // Handle the remaining bits of the larger number
-			unrollReverseInclusive < M - N - 2, 0>([&](char i) {
-				borrow = (result.data[i] == UINT64_MAX && borrow) ? 1 : 0;
-				result.data[i] = other.data[i] - borrow;
-				});
+			unsigned char borrow = 0;
+			unroll<N>([&](char i) {
+				subtractWithBorrow(data[i], other.data[i], result.data[i], borrow);
+			});
+			unroll<N + 1, M>([&](char i) {
+				result.data[i] = ~other.data[i];
+			});
 			return result;
 		}
+		
 	}
 
 	template <char M>
@@ -254,7 +246,7 @@ public:
 
 	friend std::ostream& operator<<(std::ostream& os, const uint_array<N>& num) {
 		// Temporary - will print in base 10 soon
-		for (int i = 0; i < N; ++i) {
+		for (int i = N - 1; i >= 0; --i) {
 			os << num.data[i] << ' ';
 		}
 		return os;

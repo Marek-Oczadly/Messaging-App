@@ -16,8 +16,5 @@ Compilation information:
 
 int main()
 {
-	unroll<3, 10>([](char i) {
-		std::cout << static_cast<int>(i) << NEWL;
-		});
     return 0;
 }
