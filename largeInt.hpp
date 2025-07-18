@@ -5,11 +5,8 @@
 #pragma once
 #include <array>
 #include <ostream>
-#include <iostream>
 #include <initializer_list>
 #include "utils.hpp"
-
-// TODO: Switch the direction of significant bits so it is more cache efficient. Abstract in inputs and outputs
 
 /// @brief A 256-bit unsigned integer class that can be used for large integer arithmetic
 template <char N>
@@ -19,7 +16,7 @@ class uint_array {
 	*	======================= REPRESENTATION =======================
 	* Size N: 1 < N < 128 (due to char limits and would be inefficient)
 	* { x_0,    x_1,    x_2,    x_3,    ...,   x_(N-1) }
-	* ^ least significant (2^(64*0))         ^ most significant (2^(64*(N-1)))
+	*   ^ least significant (2^(64*0))         ^ most significant (2^(64*(N-1)))
 	*/
 private:
 	std::array<uint64_t, N> data;
@@ -29,7 +26,7 @@ public:
 	friend class uint_array;
 
 	uint_array() noexcept = default;
-	uint_array(uint64_t value) : data() {
+	uint_array(const uint64_t value) : data() {
 		data[0] = value;
 	}
 	uint_array(const std::array<uint64_t, N>& arr) noexcept : data(arr) {};
@@ -38,10 +35,10 @@ public:
 		if (list.size() > N) {
 			throw std::out_of_range("Initializer list size exceeds array size");
 		}
-		auto it = list.begin();
-		for (int i = 0; i < list.size(); ++i) {
-			data[i] = *it;
-			++it;
+		uint64_t* idx = &data[static_cast<char>(list.size()) - 1];
+		for (const uint64_t val : list) {
+			*idx = val;
+			--idx;
 		}
 	}
 
@@ -113,7 +110,7 @@ public:
 			unroll<M>([&](char i) {
 				addWithOverflow(other.data[i], data[i], result.data[i], carry);
 			});
-			unroll<M + 1, N>([&](char i) {
+			unroll<M, N>([&](char i) {
 				result.data[i] = data[i] + carry;
 				carry = (data[i] == UINT64_MAX && carry) ? 1 : 0;
 			});
@@ -125,7 +122,7 @@ public:
 			unroll<N>([&](char i) {
 				addWithOverflow(other.data[i], data[i], result.data[i], carry);
 			});
-			unroll<N + 1, M>([&](char i) {
+			unroll<N, M>([&](char i) {
 				result.data[i] = other.data[i] + carry;
 				carry = (other.data[i] == UINT64_MAX && carry) ? 1 : 0;
 			});
@@ -149,7 +146,7 @@ public:
 			unroll<M>([&](char i) {
 				subtractWithBorrow(data[i], other.data[i], result.data[i], borrow);
 			});
-			unroll<M + 1, N>([&](char i) {
+			unroll<M, N>([&](char i) {
 				result.data[i] = data[i] - borrow;
 				borrow = (borrow && data[i] == 0) ? 1 : 0; // Check for underflow
 			});
@@ -161,7 +158,7 @@ public:
 			unroll<N>([&](char i) {
 				subtractWithBorrow(data[i], other.data[i], result.data[i], borrow);
 			});
-			unroll<N + 1, M>([&](char i) {
+			unroll<N, M>([&](char i) {
 				result.data[i] = ~other.data[i];
 			});
 			return result;
@@ -175,63 +172,83 @@ public:
 			return *this;
 		}
 		else if constexpr (N > M) {
-			uint_array<M> result;
-			uint64_t* pos = &result.data[0];
-			unroll<N - M, N>([&](char i) {
-				*pos = data[i];
-				++pos;
+			uint_array<M> r;
+			unroll<M>([&](char i) {	// for (char i = 0; i < M; ++i) {
+				r.data[i] = data[i];	// Copy only the first M elements
 			});
-			return result;
+			return r;
 		}
 		else {
-			uint_array<M> result;
-			uint64_t* pos = &data[0];
-			unroll<M - N>([&](char i) {
-				result[i] = 0;
+			uint_array<M> r;
+			unroll<N>([&](char i) {	// for (char i = 0; i < N; ++i) {
+				r.data[i] = data[i];	// Copy only the first N elements
 			});
-			unroll<M - N, M>([&](char i) {
-				result[i] = *pos;
-				++pos;
+			unroll<N, M>([&](char i) {	// for (char i = N; i < M; ++i) {
+				r.data[i] = 0;	// Fill the rest with zeros
 			});
-			return result;
+			return r;
 		}
 	}
 
 	template <char M>
 	uint_array<N>& operator+=(const uint_array<M>& other) noexcept {
 		if constexpr (M == N) {
-			uint64_t carry = 0;
-			unrollReverseInclusive<N - 1, 0>([&](char i) {	// for (char i = N - 1; i >= 0; --i) {
-				uint64_t sum = data[i] + other.data[i] + carry;
-				data[i] = sum;
-				carry = (sum < data[i]) ? 1 : 0; // Check for overflow
+			unsigned char carry = 0;
+			unroll<N>([&](char i) {	// for (char i = N - 1; i >= 0; --i) {
+				addWithOverflow(data[i], other.data[i], carry);
+			});
+			return *this;
+		}
+		else if constexpr (N > M) {
+			unsigned char carry = 0;
+			uint64_t temp;
+			unroll<M>([&](char i) {
+				addWithOverflow(data[i], other.data[i], carry);
+			});
+			unroll<M, N>([&](char i) {
+				temp = data[i];
+				data[i] += carry;
+				carry = (temp == UINT64_MAX && carry) ? 1 : 0; // Check for overflow
+			});
+			return *this;
+		}
+		else {
+			unsigned char carry = 0;
+			unroll<N>([&](char i) {
+				addWithOverflow(data[i], other.data[i], carry);
+			});
+			return *this;
+		}
+	}
+
+	template <char M>
+	uint_array<N>& operator-=(const uint_array<M>& other) noexcept {
+		if constexpr (N == M) {
+			unsigned char borrow = 0;
+			unroll<N>([&](char i) {
+				subtractWithBorrow(data[i], other.data[i], borrow);
+			});
+			return *this;
+		}
+		else if constexpr (N > M) {
+			unsigned char borrow = 0;
+			uint64_t temp;
+			unroll<M>([&](char i) {
+				subtractWithBorrow(data[i], other.data[i], borrow);
+			});
+			unroll<M, N>([&](char i) {
+				temp = data[i];
+				data[i] -= borrow;
+				borrow = (borrow && temp == 0) ? 1 : 0; // Check for underflow
 			});
 		}
-		else if constexpr (M < N) {
-			uint64_t carry = 0;
-			unrollReverseInclusive<N - 1, N - M>([&](char i) {
-
-				});
+		else {
+			unsigned char borrow = 0;
+			unroll<N>([&](char i) {
+				subtractWithBorrow(data[i], other.data[i], borrow);
+			});
+			return *this;
 		}
-
-		return *this;
-	}
-
-	uint_array& operator-=(const uint_array& other) noexcept {
-		uint64_t borrow = 0;
-		for (char i = 3; i >= 0; --i) {
-			uint64_t diff = data[i] - other.data[i] - borrow;
-			data[i] = diff;
-			borrow = (diff > data[i]) ? 1 : 0; // Check for underflow
-		}
-		return *this;
-	}
-
-	uint_array& operator=(const uint_array& other) noexcept {
-		if (this != &other) {
-			data = other.data;
-		}
-		return *this;
 	}
 
 	uint_array& operator=(const uint64_t other) noexcept {
@@ -240,8 +257,12 @@ public:
 		return *this;
 	}
 
-	bool operator==(const uint_array& other) const noexcept {
-		return data == other.data;
+	template <char M>
+	bool operator==(const uint_array<M>& other) const noexcept {
+		if constexpr (N == M) {
+			return data == other.data;
+		}
+
 	}
 
 	friend std::ostream& operator<<(std::ostream& os, const uint_array<N>& num) {
