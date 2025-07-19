@@ -20,12 +20,56 @@ class uint_array {
 	*/
 private:
 	std::array<uint64_t, N> data;
+
+	template <char M>
+	inline uint_array<maxValue<N, M>> naiveMultiply(const uint_array<M>& other) const noexcept {
+		if constexpr (N == M) {
+			uint_array<N> result;
+			uint64_t carry;
+			for (char i = 0; i < N; ++i) {
+				carry = 0;
+				for (char j = 0; j < N - i - 1; ++j) {
+					multiply64x64(data[i], other.data[j], carry, result[i + j], result[i + j + 1]);
+				}
+				uint64_t temp;	// Dummy variable to fill an argument
+				multiply64x64<false>(data[i], other.data[N - i - 1], carry, result[N - 1], temp);
+			}
+			return result;
+		}
+		else if constexpr (N > M) {
+			uint_array<N> result;
+			uint64_t carry;
+			for (char i = 0; i < M; ++i) {
+				carry = 0;
+				for (char j = 0; j < N - i - 1; ++j) {
+					multiply64x64(other.data[j], data[i], carry, result[i + j], result[i + j + 1]);
+				}
+				uint64_t temp;	// Dummy variable to fill an argument
+				multiply64x64<false>(other.data[i], data[N - i - 1], carry, result[N - 1], temp);
+			}
+			return result;
+		}
+		else {	// M > N
+			uint_array<M> result;
+			uint64_t carry;
+			for (char i = 0; i < N; ++i) {
+				carry = 0;
+				for (char j = 0; j < M - i - 1; ++i) {
+					multiply64x64(data[i], other.data[j], carry, result[i + j], result[i + j + 1]);
+				}
+				uint64_t temp;	// Dummy variable to fill an argument
+				multiply64x64<false>(data[i], other.data[M - i - 1], carry, result[M - 1], temp);
+			}
+			return result;
+		}
+	}
+
 public:
 	// Allows the use of private members within templated methods
 	template <char M>
 	friend class uint_array;
 
-	uint_array() noexcept = default;
+	uint_array() noexcept {};
 	uint_array(const uint64_t value) : data() {
 		data[0] = value;
 	}
@@ -167,30 +211,6 @@ public:
 	}
 
 	template <char M>
-	operator uint_array<M>() const noexcept {
-		if constexpr (N == M) {	// No change
-			return *this;
-		}
-		else if constexpr (N > M) {
-			uint_array<M> r;
-			unroll<M>([&](char i) {	// for (char i = 0; i < M; ++i) {
-				r.data[i] = data[i];	// Copy only the first M elements
-			});
-			return r;
-		}
-		else {
-			uint_array<M> r;
-			unroll<N>([&](char i) {	// for (char i = 0; i < N; ++i) {
-				r.data[i] = data[i];	// Copy only the first N elements
-			});
-			unroll<N, M>([&](char i) {	// for (char i = N; i < M; ++i) {
-				r.data[i] = 0;	// Fill the rest with zeros
-			});
-			return r;
-		}
-	}
-
-	template <char M>
 	uint_array<N>& operator+=(const uint_array<M>& other) noexcept {
 		if constexpr (M == N) {
 			unsigned char carry = 0;
@@ -251,10 +271,57 @@ public:
 		}
 	}
 
-	uint_array& operator=(const uint64_t other) noexcept {
+	template <char M>
+	operator uint_array<M>() const noexcept {
+		if constexpr (N == M) {	// No change
+			return *this;
+		}
+		else if constexpr (N > M) {
+			uint_array<M> r;
+			unroll<M>([&](char i) {	// for (char i = 0; i < M; ++i) {
+				r.data[i] = data[i];	// Copy only the first M elements
+				});
+			return r;
+		}
+		else {
+			uint_array<M> r;
+			unroll<N>([&](char i) {	// for (char i = 0; i < N; ++i) {
+				r.data[i] = data[i];	// Copy only the first N elements
+				});
+			unroll<N, M>([&](char i) {	// for (char i = N; i < M; ++i) {
+				r.data[i] = 0;	// Fill the rest with zeros
+				});
+			return r;
+		}
+	}
+
+	uint_array<N>& operator=(const uint64_t other) noexcept {
 		data.fill(0);
 		data[0] = other;
 		return *this;
+	}
+
+	template <char M>
+	uint_array<N>& operator=(const uint_array<M>& other) noexcept {
+		if constexpr (N == M) {
+			data = other.data;
+			return *this;
+		}
+		else if constexpr (N > M) {
+			unroll<M>([&](char i) {
+				data[i] = other.data[i];
+			});
+			unroll<M, N>([&](char i) {
+				data[i] = 0;	// Fill the rest with zeros
+			});
+			return *this;
+		}
+		else {
+			unroll<N>([&](char i) {
+				data[i] = other.data[i];
+			});
+			return *this;
+		}
 	}
 
 	template <char M>
@@ -262,7 +329,29 @@ public:
 		if constexpr (N == M) {
 			return data == other.data;
 		}
+		else if constexpr (N > M) {
+			unroll<M>([&](char i) {
+				if (data[i] != other.data[i]) return false;
+			});
+			unroll<M, N>([&](char i) {
+				if (data[i] != 0) return false;
+			});
+			return true;
+		}
+		else {
+			unroll<N>([&](char i) {
+				if (data[i] != other.data[i]) return false;
+			});
+			unroll<N, M>([&](char i) {
+				if (other.data[i] != 0) return false;
+			});
+			return true;
+		}
+	}
 
+	template <char M>
+	bool operator !=(const uint_array<M>& other) const noexcept {
+		return not(this->operator==(other));
 	}
 
 	friend std::ostream& operator<<(std::ostream& os, const uint_array<N>& num) {
@@ -274,6 +363,8 @@ public:
 	}
 };
 
+
+typedef uint_array<2> uint128_t;
 typedef uint_array<4> uint256_t;
 typedef uint_array<8> uint512_t;
 typedef uint_array<16> uint1024_t;

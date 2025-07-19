@@ -66,6 +66,7 @@ inline void unrollReverseInclusive(T&& func) {
 	}
 }
 
+
 /// @brief Check if a bit is 1
 inline bool getBit(unsigned int value, const uint8_t bit) noexcept {
 	return (value & (1U << bit)) != 0;
@@ -215,5 +216,24 @@ inline void subtractWithBorrow(const uint64_t a, const uint64_t b, uint64_t& res
 	borrow = (a < b) ? 1 : 0;	// Check for underflow
 	result = temp - borrow;
 	borrow |= (temp < borrow) ? 1 : 0;	// Check if borrow occurred
+#endif
+}
+
+
+template <bool enable_high = true>
+inline void multiply64x64(const uint64_t a, const uint64_t b, uint8_t& carry, uint64_t& result_low, uint64_t& result_high) noexcept {
+#if defined(_MSC_VER) && defined(_M_X64)	// Only available on x64 MSVC
+	uint64_t high, low = _umul128(a, b, &high);	// Uses MSVC intrinsic for 128-bit multiplication
+	carry = _addcarry_u64(carry, result_low, low, &result_low);
+	if constexpr (enable_high) {
+		carry = _addcarry_u64(carry, result_high, high, &result_high);
+	}
+#elif defined(__SIZEOF_INT128__)	// Available on G++ and Clang
+	__uint128_t product = static_cast<__uint128_t>(a) * b; // Carry argument not needed
+	prdouct += result_low;
+	result_low = static_cast<uint64_t>(product);
+	if constexpr (enable_high) {
+		result_high += static_cast<uint64_t>(product >> 64);
+	}
 #endif
 }
