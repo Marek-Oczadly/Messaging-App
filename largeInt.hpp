@@ -64,6 +64,20 @@ private:
 		}
 	}
 
+	template <char M>
+	inline uint_array<maxValue<N, M>> karatsubaMultiply(const uint_array<M>& other) const noexcept {
+		if constexpr (N == M) {
+			uint_array<N> result;
+			
+		}
+		else if constexpr (N > M) {
+
+		}
+		else {
+
+		}
+	}
+
 public:
 	// Allows the use of private members within templated methods
 	template <char M>
@@ -172,6 +186,36 @@ public:
 			});
 			return result;
 		}
+	}
+
+	uint_array<N>& operator+=(const uint64_t other) noexcept {
+		data[0] += other;
+		bool carry = data[0] < other;	// Check if carry occurred
+		char i = 0;
+		while (carry && ++i < N) {
+			carry = (++data[i] == 0);
+		}
+		return *this;
+	}
+
+	uint_array<N> operator+(const uint64_t other) const noexcept {
+		uint_array<N> result = *this;
+		return result += other;
+	}
+
+	uint_array<N>& operator-=(const uint64_t other) noexcept {
+		data[0] -= other;
+		bool borrow = data[0] > (~other);
+		char i = 0;
+		while (borrow && ++i < N) {
+			borrow = (--data[i] == UINT64_MAX);
+		}
+		return *this;
+	}
+
+	uint_array<N> operator-(const uint64_t other) const noexcept {
+		uint_array<N> result = *this;
+		return result -= other;
 	}
 
 	template <char M>
