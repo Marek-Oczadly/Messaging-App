@@ -220,20 +220,29 @@ inline void subtractWithBorrow(const uint64_t a, const uint64_t b, uint64_t& res
 }
 
 
+#if defined(_MSC_VER) && defined(_M_ARM64)	// MSVC arm-64
+uint64_t _umul128(uint64_t a, uint64_t b, uint64_t* high_product) {
+	*high = __umulh(a, b);	// Uses MSVC intrinsic for 128-bit multiplication
+	return a * b;	// Returns the low part of the product
+}
+#endif
+
+
 template <bool enable_high = true>
 inline void multiply64x64(const uint64_t a, const uint64_t b, uint8_t& carry, uint64_t& result_low, uint64_t& result_high) noexcept {
 #if defined(_MSC_VER) && defined(_M_X64)	// Only available on x64 MSVC
 	uint64_t high, low = _umul128(a, b, &high);	// Uses MSVC intrinsic for 128-bit multiplication
 	carry = _addcarry_u64(carry, result_low, low, &result_low);
-	if constexpr (enable_high) {
+	if constexpr (enable_high) {	// May be off for the last multiplication
 		carry = _addcarry_u64(carry, result_high, high, &result_high);
 	}
 #elif defined(__SIZEOF_INT128__)	// Available on G++ and Clang
-	__uint128_t product = static_cast<__uint128_t>(a) * b; // Carry argument not needed
-	prdouct += result_low;
-	result_low = static_cast<uint64_t>(product);
-	if constexpr (enable_high) {
-		result_high += static_cast<uint64_t>(product >> 64);
+	__uint128_t product = static_cast<__uint128_t>(a) * b;
+	addWithOverflow(result_low, static_cast<uint64_t>(product), carry);
+	if constexpr (enable_high) {	// May be off for the last multiplicaton
+		addWithOverflow(result_high, static_cast<uint64_t>(product >> 64), carry);
 	}
+#else
+	// TODO: Implement manual implemtation 
 #endif
 }

@@ -8,6 +8,8 @@
 #include <initializer_list>
 #include "utils.hpp"
 
+#define BASE uint64_t
+
 /// @brief A 256-bit unsigned integer class that can be used for large integer arithmetic
 template <char N>
 class uint_array {
@@ -19,45 +21,45 @@ class uint_array {
 	*   ^ least significant (2^(64*0))         ^ most significant (2^(64*(N-1)))
 	*/
 private:
-	std::array<uint64_t, N> data;
+	std::array<BASE, N> data;
 
 	template <char M>
 	inline uint_array<maxValue<N, M>> naiveMultiply(const uint_array<M>& other) const noexcept {
 		if constexpr (N == M) {
-			uint_array<N> result;
-			uint64_t carry;
+			uint_array<N> result = 0;
+			BASE carry;
 			for (char i = 0; i < N; ++i) {
 				carry = 0;
 				for (char j = 0; j < N - i - 1; ++j) {
-					multiply64x64(data[i], other.data[j], carry, result[i + j], result[i + j + 1]);
+					multiply64x64<true>(data[i], other.data[j], carry, result[i + j], result[i + j + 1]);
 				}
-				uint64_t temp;	// Dummy variable to fill an argument
+				BASE temp;	// Dummy variable to fill an argument
 				multiply64x64<false>(data[i], other.data[N - i - 1], carry, result[N - 1], temp);
 			}
 			return result;
 		}
 		else if constexpr (N > M) {
-			uint_array<N> result;
-			uint64_t carry;
+			uint_array<N> result = 0;
+			BASE carry;
 			for (char i = 0; i < M; ++i) {
 				carry = 0;
 				for (char j = 0; j < N - i - 1; ++j) {
-					multiply64x64(other.data[j], data[i], carry, result[i + j], result[i + j + 1]);
+					multiply64x64<true>(other.data[j], data[i], carry, result[i + j], result[i + j + 1]);
 				}
-				uint64_t temp;	// Dummy variable to fill an argument
+				BASE temp;	// Dummy variable to fill an argument
 				multiply64x64<false>(other.data[i], data[N - i - 1], carry, result[N - 1], temp);
 			}
 			return result;
 		}
 		else {	// M > N
-			uint_array<M> result;
-			uint64_t carry;
+			uint_array<M> result = 0;
+			BASE carry;
 			for (char i = 0; i < N; ++i) {
 				carry = 0;
-				for (char j = 0; j < M - i - 1; ++i) {
-					multiply64x64(data[i], other.data[j], carry, result[i + j], result[i + j + 1]);
+				for (char j = 0; j < M - i - 1; ++j) {
+					multiply64x64<true>(data[i], other.data[j], carry, result[i + j], result[i + j + 1]);
 				}
-				uint64_t temp;	// Dummy variable to fill an argument
+				BASE temp;	// Dummy variable to fill an argument
 				multiply64x64<false>(data[i], other.data[M - i - 1], carry, result[M - 1], temp);
 			}
 			return result;
@@ -84,17 +86,17 @@ public:
 	friend class uint_array;
 
 	uint_array() noexcept {};
-	uint_array(const uint64_t value) : data() {
+	uint_array(const BASE value) : data() {
 		data[0] = value;
 	}
-	uint_array(const std::array<uint64_t, N>& arr) noexcept : data(arr) {};
+	uint_array(const std::array<BASE, N>& arr) noexcept : data(arr) {};
 
-	uint_array(const std::initializer_list<uint64_t>& list) : data() {
+	uint_array(const std::initializer_list<BASE>& list) : data() {
 		if (list.size() > N) {
 			throw std::out_of_range("Initializer list size exceeds array size");
 		}
-		uint64_t* idx = &data[static_cast<char>(list.size()) - 1];
-		for (const uint64_t val : list) {
+		BASE* idx = &data[static_cast<char>(list.size()) - 1];
+		for (const BASE val : list) {
 			*idx = val;
 			--idx;
 		}
@@ -112,12 +114,12 @@ public:
 		}
 	}
 
-	constexpr uint_array(const std::array<uint64_t, N> arr) : data(arr) {}
+	constexpr uint_array(const std::array<BASE, N> arr) : data(arr) {}
 
 	inline constexpr char size() const noexcept {
 		return N;
 	}
-	uint64_t operator[](unsigned char index) const {
+	BASE operator[](unsigned char index) const {
 		if (index >= N) {
 			throw std::out_of_range("Index out of range");
 		}
@@ -188,7 +190,7 @@ public:
 		}
 	}
 
-	uint_array<N>& operator+=(const uint64_t other) noexcept {
+	uint_array<N>& operator+=(const BASE other) noexcept {
 		data[0] += other;
 		bool carry = data[0] < other;	// Check if carry occurred
 		char i = 0;
@@ -198,12 +200,12 @@ public:
 		return *this;
 	}
 
-	uint_array<N> operator+(const uint64_t other) const noexcept {
+	uint_array<N> operator+(const BASE other) const noexcept {
 		uint_array<N> result = *this;
 		return result += other;
 	}
 
-	uint_array<N>& operator-=(const uint64_t other) noexcept {
+	uint_array<N>& operator-=(const BASE other) noexcept {
 		data[0] -= other;
 		bool borrow = data[0] > (~other);
 		char i = 0;
@@ -213,7 +215,7 @@ public:
 		return *this;
 	}
 
-	uint_array<N> operator-(const uint64_t other) const noexcept {
+	uint_array<N> operator-(const BASE other) const noexcept {
 		uint_array<N> result = *this;
 		return result -= other;
 	}
@@ -265,7 +267,7 @@ public:
 		}
 		else if constexpr (N > M) {
 			unsigned char carry = 0;
-			uint64_t temp;
+			BASE temp;
 			unroll<M>([&](char i) {
 				addWithOverflow(data[i], other.data[i], carry);
 			});
@@ -296,7 +298,7 @@ public:
 		}
 		else if constexpr (N > M) {
 			unsigned char borrow = 0;
-			uint64_t temp;
+			BASE temp;
 			unroll<M>([&](char i) {
 				subtractWithBorrow(data[i], other.data[i], borrow);
 			});
@@ -339,7 +341,7 @@ public:
 		}
 	}
 
-	uint_array<N>& operator=(const uint64_t other) noexcept {
+	uint_array<N>& operator=(const BASE other) noexcept {
 		data.fill(0);
 		data[0] = other;
 		return *this;
