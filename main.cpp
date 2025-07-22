@@ -13,10 +13,12 @@ Compilation information:
 
 #include <iostream>
 #include <chrono>
-#include "utils.hpp"
+#include "largeInt.hpp"
 
 int main()
 {
-    std::cout << "Hello world" << std::endl;
-    return 0;
+	uint256_t a = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
+	uint256_t b = { 0, 0, 0, 1 };
+
+	std::cout << a + b << std::endl;
 }
