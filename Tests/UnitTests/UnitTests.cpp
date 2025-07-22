@@ -27,7 +27,9 @@ namespace Microsoft {															\
 #ifdef DEFINE_UINT_ARRAY_TOSTRING
 DEFINE_UINT_ARRAY_TOSTRING(4);
 DEFINE_UINT_ARRAY_TOSTRING(8);
+DEFINE_UINT_ARRAY_TOSTRING(16);
 #endif
+
 
 namespace LARGE_INT {
 	TEST_CLASS(BASIC_ARITMETIC) {
@@ -76,6 +78,22 @@ public:
 			uint512_t expected = { 0, 0, 0, 1, 0, 0, 0, 0 };
 
 			Assert::AreEqual(expected, a + b);
+		}
+
+		TEST_METHOD(ADDITION_256_512_OVERFLOW) {
+			uint512_t a = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
+			uint256_t b = { 0x0, 0x0, 0x0, 0x1 };
+			uint512_t expected = { 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0x0 };
+
+			Assert::AreEqual(expected, a + b);
+		}
+
+		TEST_METHOD(SUBTRACTION_512_256) {
+			uint512_t a = { 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0x0 };
+			uint256_t b = { 0x0, 0x0, 0x0, 0x1 };
+			uint512_t expected = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
+
+			Assert::AreEqual(expected, a - b);
 		}
 	};
 }
