@@ -258,7 +258,8 @@ public:
 				subtractWithBorrow(data[i], other.data[i], result.data[i], borrow);
 			});
 			unroll<N, M>([&](char i) {
-				result.data[i] = ~other.data[i];
+				result.data[i] = (borrow) ? ~other.data[i] : negate_uint64(other.data[i]);
+				borrow = (borrow || result.data[i] > 0) ? 1 : 0;
 			});
 			return result;
 		}
@@ -335,17 +336,17 @@ public:
 			uint_array<M> r;
 			unroll<M>([&](char i) {	// for (char i = 0; i < M; ++i) {
 				r.data[i] = data[i];	// Copy only the first M elements
-				});
+			});
 			return r;
 		}
 		else {
 			uint_array<M> r;
 			unroll<N>([&](char i) {	// for (char i = 0; i < N; ++i) {
 				r.data[i] = data[i];	// Copy only the first N elements
-				});
+			});
 			unroll<N, M>([&](char i) {	// for (char i = N; i < M; ++i) {
 				r.data[i] = 0;	// Fill the rest with zeros
-				});
+			});
 			return r;
 		}
 	}

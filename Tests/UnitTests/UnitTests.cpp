@@ -34,8 +34,16 @@ DEFINE_UINT_ARRAY_TOSTRING(16);
 namespace LARGE_INT {
 	TEST_CLASS(BASIC_ARITMETIC) {
 	
-public:
-		
+	public:
+
+		TEST_METHOD(EXPECTED_BITFLIP) {
+			int64_t temp = INT64_MIN;
+			uint64_t a = *reinterpret_cast<uint64_t*>(&temp);
+			uint64_t expected = ~a + 1;
+			uint64_t test = -(*reinterpret_cast<int64_t*>(&a));
+			Assert::AreEqual(test, expected);
+		}
+
 		TEST_METHOD(BASIC_256_ADDITION) {
 			uint256_t a = { 1, 1, 1, 1 };
 			uint256_t b = { 2, 2, 2, 2 };
@@ -71,7 +79,6 @@ public:
 
 			Assert::AreEqual(uint512_t{ 1, 1, 1, 1, 3, 3, 3, 3 }, a + b);
 		}
-
 		TEST_METHOD(ADDITION_512_256_OVERFLOW) {
 			uint512_t a = { 0, 0, 0, 0, 0, 0, 0, 1 };
 			uint256_t b = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
@@ -93,6 +100,15 @@ public:
 			uint256_t b = { 0x0, 0x0, 0x0, 0x1 };
 			uint512_t expected = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
 
+			Assert::AreEqual(expected, a - b);
+		}
+
+		TEST_METHOD(SUBTRACTION_256_512) {
+			uint256_t a = { 0x0, 0x0, 0x35, 0x0 };
+			uint512_t b = { 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0x0 };
+
+			uint512_t expected = 
+				{ 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0x0, 0x0, 0x35, 0x0 };
 			Assert::AreEqual(expected, a - b);
 		}
 	};

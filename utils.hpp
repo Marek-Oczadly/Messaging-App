@@ -246,3 +246,11 @@ inline void multiply64x64(const uint64_t a, const uint64_t b, uint8_t& carry, ui
 	// TODO: Implement manual implemtation 
 #endif
 }
+
+inline uint64_t negate_uint64(const uint64_t& value) noexcept {
+#if defined(_MSC_VER)
+	return -(*reinterpret_cast<const int64_t*>(&value));
+#else
+	return ~value + 1;
+#endif
+}

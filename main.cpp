@@ -17,8 +17,5 @@ Compilation information:
 
 int main()
 {
-	uint256_t a = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
-	uint256_t b = { 0, 0, 0, 1 };
-
-	std::cout << a + b << std::endl;
+	return 0;
 }
