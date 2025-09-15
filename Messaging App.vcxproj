@@ -141,6 +141,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="largeInt.hpp" />
+    <ClInclude Include="masks.hpp" />
     <ClInclude Include="simdDetection.hpp" />
     <ClInclude Include="utils.hpp" />
   </ItemGroup>

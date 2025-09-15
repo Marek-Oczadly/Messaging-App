@@ -111,5 +111,9 @@ namespace LARGE_INT {
 				{ 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0x0, 0x0, 0x35, 0x0 };
 			Assert::AreEqual(expected, a - b);
 		}
+
+		TEST_METHOD(EQUAL_SIZE) {
+			Assert::AreEqual(sizeof(uint256_t), sizeof(uint64_t) * 4);
+		}
 	};
 }

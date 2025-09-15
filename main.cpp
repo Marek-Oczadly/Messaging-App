@@ -17,5 +17,10 @@ Compilation information:
 
 int main()
 {
-	return 0;
+    std::cout << "Alignment of std::array<uint8_t, 8>: "
+        << alignof(std::array<uint8_t, 8>) << "\n";
+
+    std::cout << "Alignment of std::array<uint64_t, 1>: "
+        << alignof(std::array<uint64_t, 1>) << "\n";
+
 }

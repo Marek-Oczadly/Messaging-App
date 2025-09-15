@@ -5,6 +5,7 @@
 #pragma once
 #include <cstdint>
 #include <bit>
+#include <array>
 
 #if defined(_MSC_VER)
 	#include <intrin.h>
@@ -65,7 +66,6 @@ inline void unrollReverseInclusive(T&& func) {
 		unrollReverseInclusive<N - 1, M>(std::forward<T>(func));
 	}
 }
-
 
 /// @brief Check if a bit is 1
 inline bool getBit(unsigned int value, const uint8_t bit) noexcept {
@@ -251,6 +251,25 @@ inline uint64_t negate_uint64(const uint64_t& value) noexcept {
 #if defined(_MSC_VER)
 	return -(*reinterpret_cast<const int64_t*>(&value));
 #else
-	return ~value + 1;
+	return ~value + 1U;
 #endif
+}
+
+constexpr uint64_t CEIL(const double value) noexcept {
+	return (static_cast<uint64_t>(value) == value) ? static_cast<uint64_t>(value) : static_cast<uint64_t>(value) + 1;
+}
+
+constexpr uint64_t BCD_BITWIDTH(const uint64_t binary_bitwidth) noexcept {
+	return 4U * CEIL(binary_bitwidth * 0.30102999566398119521373889472449); // log10(2) ~ 0.30103
+}
+
+constexpr uint64_t UINT8_BCD_ARRAY_SIZE(const uint64_t uint64_count) noexcept {
+	return CEIL(static_cast<double>(BCD_BITWIDTH(uint64_count * 64)) / 8.0);
+}
+
+template <uint32_t N>
+std::array<uint8_t, N> LeftShift(const std::array<uint8_t, N>& arr, const uint32_t places) noexcept {
+	static_assert(alignof(arr) % 8 == 0, "Array must be 8-byte aligned");	// Allows reinterpret cast to uint64_t for using 64-bit operations
+	alignas(8) std::array<uint8_t, N> result = {};
+
 }

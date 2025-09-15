@@ -70,22 +70,37 @@ private:
 	inline uint_array<maxValue<N, M>> karatsubaMultiply(const uint_array<M>& other) const noexcept {
 		if constexpr (N == M) {
 			uint_array<N> result;
-			
+			// TODO
 		}
 		else if constexpr (N > M) {
-
+			// TODO
 		}
 		else {
-
+			// TODO
 		}
 	}
+
+	/// @brief Add3 module for binary to BCD conversion
+	/// @param num The number
+	/// @return The result of adding 3 if num >= 5, otherwise returns num
+	static inline uint8_t add3(const uint8_t num) noexcept {
+		return (num >= 5) ? num + 3 : num;
+	}
+
+
+	inline std::array<uint8_t, UINT8_BCD_ARRAY_SIZE(N)> BCD() const noexcept {
+		alignas(8) std::array<uint8_t, UINT8_BCD_ARRAY_SIZE(N)> result = {};
+
+	}
+	
 
 public:
 	// Allows the use of private members within templated methods
 	template <char M>
 	friend class uint_array;
 
-	uint_array() noexcept {};
+	uint_array() noexcept = default;
+
 	uint_array(const uint64_t value) : data() {
 		data[0] = value;
 	}
