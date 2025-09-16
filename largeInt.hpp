@@ -9,22 +9,33 @@
 #include <string>
 #include "utils.hpp"
 
+#if defined(_DEBUG)
+#define loopUnroll(N) for (uint32_t i = 0; i < N; ++i) {
+#define loopUnrollFrom(M, N) for (uint32_t i = M; i < N; ++i) {
+
+#define endLoop }
+
+#elif defined(NDEBUG)
+#define loopUnroll(N) unroll<N>([&](uint8_t i) {
+#define loopUnrollFrom(M, N) unroll<M, N>([&](uint8_t i) {
+#define endLoop });
+#endif
 
 /// @brief A 256-bit unsigned integer class that can be used for large integer arithmetic
-template <char N>
+template <uint8_t N>
 class uint_array {
 	static_assert(N > 1 && N < 128, "N must be between or including 2 and 127");
-	/*
-	*	======================= REPRESENTATION =======================
-	* Size N: 1 < N < 128 (due to char limits and would be inefficient)
-	* { x_0,    x_1,    x_2,    x_3,    ...,   x_(N-1) }
-	*   ^ least significant (2^(64*0))         ^ most significant (2^(64*(N-1)))
-	*/
+	/**
+	 *	======================= REPRESENTATION =======================
+	 * Size N: 1 < N < 128 (due to char limits and would be inefficient)
+	 * { x_0,    x_1,    x_2,    x_3,    ...,   x_(N-1) }
+	 *   ^ least significant (2^(64*0))         ^ most significant (2^(64*(N-1)))
+	**/
 private:
 	std::array<uint64_t, N> data;
 
-	template <char M>
-	inline uint_array<maxValue<N, M>> naiveMultiply(const uint_array<M>& other) const noexcept {
+	template <uint8_t M>
+	inline uint_array<maxValue(N, M)> naiveMultiply(const uint_array<M>& other) const noexcept {
 		if constexpr (N == M) {
 			uint_array<N> result = 0;
 			uint64_t carry;
@@ -66,8 +77,8 @@ private:
 		}
 	}
 
-	template <char M>
-	inline uint_array<maxValue<N, M>> karatsubaMultiply(const uint_array<M>& other) const noexcept {
+	template <uint8_t M>
+	inline uint_array<maxValue(N, M)> karatsubaMultiply(const uint_array<M>& other) const noexcept {
 		if constexpr (N == M) {
 			uint_array<N> result;
 			// TODO
@@ -89,14 +100,14 @@ private:
 
 
 	inline std::array<uint8_t, UINT8_BCD_ARRAY_SIZE(N)> BCD() const noexcept {
-		alignas(8) std::array<uint8_t, UINT8_BCD_ARRAY_SIZE(N)> result = {};
+		AlignedUInt8Array<N> byteArray{ .data64 = reverseArray(data) };
 
 	}
-	
+
 
 public:
 	// Allows the use of private members within templated methods
-	template <char M>
+	template <uint8_t M>
 	friend class uint_array;
 
 	uint_array() noexcept = default;
@@ -104,6 +115,7 @@ public:
 	uint_array(const uint64_t value) : data() {
 		data[0] = value;
 	}
+
 	uint_array(const std::array<uint64_t, N>& arr) noexcept : data(arr) {};
 
 	uint_array(const std::initializer_list<uint64_t>& list) : data() {
@@ -117,15 +129,15 @@ public:
 		}
 	}
 
-	template <char M>
+	template <uint8_t M>
 	uint_array(const uint_array<M>& other) noexcept : data() {
 		if constexpr (M == N) {
 			data = other.data;	// Direct copy if sizes match
 		}
 		else {
-			unroll<minValue<N, M>>([&](char i) {	// for (char i = 0; i < M; ++i) {
+			loopUnroll(minValue(N, M))	// for (char i = 0; i < M; ++i) {
 				data[i] = other.data[i];	// Copy only the first M elements
-			});
+			endLoop
 		}
 	}
 
@@ -149,11 +161,11 @@ public:
 	}
 
 	uint_array<N>& operator++() noexcept {
-		unroll<N>([&](char i) {
+		loopUnroll(N)
 			if (++data[i] != 0) { 
 				return *this;
 			}
-		});
+		endLoop
 	}
 
 	uint_array<N> operator++(int) noexcept {
@@ -163,11 +175,11 @@ public:
 	}
 
 	uint_array<N>& operator--() noexcept {
-		unroll<N>([&](char i) {
+		loopUnroll(N)
 			if (--data[i] != UINT64_MAX) {
 				return *this;
 			}
-		});
+		endLoop
 	}
 
 	uint_array<N> operator--(int) noexcept {
@@ -176,40 +188,38 @@ public:
 		return temp;
 	}
 
-	template <char M>
-	uint_array<maxValue<N, M>> operator+(const uint_array<M>& other) const noexcept {
+	template <uint8_t M>
+	uint_array<maxValue(N, M)> operator+(const uint_array<M>& other) const noexcept {
 		if constexpr (N == M) {
 			uint_array<N> result;
 			unsigned char carry = 0;
-			//unroll<N>([&](char i) {	
-				 for (char i = 0; i < N; ++i) {
+			loopUnroll(N)
 				addWithOverflow(other.data[i], data[i], result.data[i], carry);	// Uses the addWithOverflow function to handle overflow
-			}
-					 //);
+			endLoop
 			return result;
 		}
 		else if constexpr(N > M) {
 			uint_array<N> result;
 			unsigned char carry = 0;
-			unroll<M>([&](char i) {
+			loopUnroll(M)
 				addWithOverflow(other.data[i], data[i], result.data[i], carry);
-			});
-			unroll<M, N>([&](char i) {
+			endLoop
+			loopUnrollFrom(M, N)
 				result.data[i] = data[i] + carry;
 				carry = (data[i] == UINT64_MAX && carry) ? 1 : 0;
-			});
+			endLoop
 			return result;
 		}
 		else {
 			uint_array<M> result;
 			unsigned char carry = 0;
-			unroll<N>([&](char i) {
+			loopUnroll(N)
 				addWithOverflow(other.data[i], data[i], result.data[i], carry);
-			});
-			unroll<N, M>([&](char i) {
+			endLoop
+			loopUnrollFrom(N, M)
 				result.data[i] = other.data[i] + carry;
 				carry = (other.data[i] == UINT64_MAX && carry) ? 1 : 0;
-			});
+			endLoop
 			return result;
 		}
 	}
@@ -244,124 +254,124 @@ public:
 		return result -= other;
 	}
 
-	template <char M>
-	uint_array<maxValue<M, N>> operator-(const uint_array<M>& other) const noexcept {
+	template <uint8_t M>
+	uint_array<maxValue(M, N)> operator-(const uint_array<M>& other) const noexcept {
 		if constexpr (N == M) {
 			uint_array<N> result;
 			unsigned char borrow = 0;
-			unroll<N>([&](char i) {
+			loopUnroll(N)
 				subtractWithBorrow(data[i], other.data[i], result.data[i], borrow);
-			});
+			endLoop
 			return result;
 		}
 		else if constexpr (N > M) {
 			uint_array<N> result;
 			unsigned char borrow = 0;
-			unroll<M>([&](char i) {
+			loopUnroll(M)
 				subtractWithBorrow(data[i], other.data[i], result.data[i], borrow);
-			});
-			unroll<M, N>([&](char i) {
+			endLoop
+			loopUnrollFrom(M, N)
 				result.data[i] = data[i] - borrow;
 				borrow = (borrow && data[i] == 0) ? 1 : 0; // Check for underflow
-			});
+			endLoop
 			return result;
 		}
 		else {
 			uint_array<M> result;
 			unsigned char borrow = 0;
-			unroll<N>([&](char i) {
+			loopUnroll(N)
 				subtractWithBorrow(data[i], other.data[i], result.data[i], borrow);
-			});
-			unroll<N, M>([&](char i) {
+			endLoop
+			loopUnrollFrom(N, M)
 				result.data[i] = (borrow) ? ~other.data[i] : negate_uint64(other.data[i]);
 				borrow = (borrow || result.data[i] > 0) ? 1 : 0;
-			});
+			endLoop
 			return result;
 		}
 		
 	}
 
-	template <char M>
+	template <uint8_t M>
 	uint_array<N>& operator+=(const uint_array<M>& other) noexcept {
 		if constexpr (M == N) {
 			unsigned char carry = 0;
-			unroll<N>([&](char i) {	// for (char i = N - 1; i >= 0; --i) {
+			loopUnroll(N)
 				addWithOverflow(data[i], other.data[i], carry);
-			});
+			endLoop
 			return *this;
 		}
 		else if constexpr (N > M) {
 			unsigned char carry = 0;
 			uint64_t temp;
-			unroll<M>([&](char i) {
+			loopUnroll(M)
 				addWithOverflow(data[i], other.data[i], carry);
-			});
-			unroll<M, N>([&](char i) {
+			endLoop
+			loopUnrollFrom(M, N)
 				temp = data[i];
 				data[i] += carry;
 				carry = (temp == UINT64_MAX && carry) ? 1 : 0; // Check for overflow
-			});
+			endLoop
 			return *this;
 		}
 		else {
 			unsigned char carry = 0;
-			unroll<N>([&](char i) {
+			loopUnroll(N)
 				addWithOverflow(data[i], other.data[i], carry);
-			});
+			endLoop
 			return *this;
 		}
 	}
 
-	template <char M>
+	template <uint8_t M>
 	uint_array<N>& operator-=(const uint_array<M>& other) noexcept {
 		if constexpr (N == M) {
 			unsigned char borrow = 0;
-			unroll<N>([&](char i) {
+			loopUnroll(N)
 				subtractWithBorrow(data[i], other.data[i], borrow);
-			});
+			endLoop
 			return *this;
 		}
 		else if constexpr (N > M) {
 			unsigned char borrow = 0;
 			uint64_t temp;
-			unroll<M>([&](char i) {
+			loopUnroll(M)
 				subtractWithBorrow(data[i], other.data[i], borrow);
-			});
-			unroll<M, N>([&](char i) {
+			endLoop
+			loopUnrollFrom(M, N)
 				temp = data[i];
 				data[i] -= borrow;
 				borrow = (borrow && temp == 0) ? 1 : 0; // Check for underflow
-			});
+			endLoop
 		}
 		else {
 			unsigned char borrow = 0;
-			unroll<N>([&](char i) {
+			loopUnroll(N)
 				subtractWithBorrow(data[i], other.data[i], borrow);
-			});
+			endLoop
 			return *this;
 		}
 	}
 
-	template <char M>
+	template <uint8_t M>
 	operator uint_array<M>() const noexcept {
 		if constexpr (N == M) {	// No change
 			return *this;
 		}
 		else if constexpr (N > M) {
 			uint_array<M> r;
-			unroll<M>([&](char i) {	// for (char i = 0; i < M; ++i) {
+			loopUnroll(M)
 				r.data[i] = data[i];	// Copy only the first M elements
-			});
+			endLoop
 			return r;
 		}
 		else {
 			uint_array<M> r;
-			unroll<N>([&](char i) {	// for (char i = 0; i < N; ++i) {
+			loopUnroll(N)
 				r.data[i] = data[i];	// Copy only the first N elements
-			});
-			unroll<N, M>([&](char i) {	// for (char i = N; i < M; ++i) {
+			endLoop
+			loopUnrollFrom(N, M)
 				r.data[i] = 0;	// Fill the rest with zeros
-			});
+			endLoop
 			return r;
 		}
 	}
@@ -372,50 +382,50 @@ public:
 		return *this;
 	}
 
-	template <char M>
+	template <uint8_t M>
 	uint_array<N>& operator=(const uint_array<M>& other) noexcept {
 		if constexpr (N == M) {
 			data = other.data;
 			return *this;
 		}
 		else if constexpr (N > M) {
-			unroll<M>([&](char i) {
+			loopUnroll(M)
 				data[i] = other.data[i];
-			});
-			unroll<M, N>([&](char i) {
+			endLoop
+			loopUnrollFrom(M, N)
 				data[i] = 0;	// Fill the rest with zeros
-			});
+			endLoop
 			return *this;
 		}
 		else {
-			unroll<N>([&](char i) {
+			loopUnroll(N)
 				data[i] = other.data[i];
-			});
+			endLoop
 			return *this;
 		}
 	}
 
-	template <char M>
+	template <uint8_t M>
 	bool operator==(const uint_array<M>& other) const noexcept {
 		if constexpr (N == M) {
 			return data == other.data;
 		}
 		else if constexpr (N > M) {
-			unroll<M>([&](char i) {
+			loopUnroll(M)
 				if (data[i] != other.data[i]) return false;
-			});
-			unroll<M, N>([&](char i) {
+			endLoop
+			loopUnrollFrom(M, N)
 				if (data[i] != 0) return false;
-			});
+			endLoop
 			return true;
 		}
 		else {
-			unroll<N>([&](char i) {
+			loopUnroll(N)
 				if (data[i] != other.data[i]) return false;
-			});
-			unroll<N, M>([&](char i) {
+			endLoop
+			loopUnrollFrom(N, M)
 				if (other.data[i] != 0) return false;
-			});
+			endLoop
 			return true;
 		}
 	}

@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "CppUnitTest.h"
 #include "largeInt.hpp"
+#include "utils.hpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 

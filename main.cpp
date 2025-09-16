@@ -13,14 +13,10 @@ Compilation information:
 
 #include <iostream>
 #include <chrono>
+#include <bitset>
 #include "largeInt.hpp"
 
-int main()
-{
-    std::cout << "Alignment of std::array<uint8_t, 8>: "
-        << alignof(std::array<uint8_t, 8>) << "\n";
-
-    std::cout << "Alignment of std::array<uint64_t, 1>: "
-        << alignof(std::array<uint64_t, 1>) << "\n";
-
+int main() {
+	std::cout << "Hello world" << std::endl;
+	return 0;
 }

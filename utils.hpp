@@ -7,6 +7,8 @@
 #include <bit>
 #include <array>
 
+#include "masks.hpp"
+
 #if defined(_MSC_VER)
 	#include <intrin.h>
 #endif
@@ -14,11 +16,13 @@
 constexpr const char NEWL = '\n';
 constexpr const char TAB = '\t';
 
-template <size_t N, size_t M>
-constexpr size_t maxValue = (N > M) ? N : M;
+constexpr size_t maxValue(size_t N, size_t M) {
+	return (N > M) ? N : M;
+}
 
-template <size_t N, size_t M>
-constexpr size_t minValue = (N < M) ? N : M;
+constexpr size_t minValue(size_t N, size_t M) {
+	return (N < M) ? N : M;
+}
 
 /// @brief Unrolls a loop at compile time
 /// @tparam T The type of argument to the function
@@ -267,9 +271,31 @@ constexpr uint64_t UINT8_BCD_ARRAY_SIZE(const uint64_t uint64_count) noexcept {
 	return CEIL(static_cast<double>(BCD_BITWIDTH(uint64_count * 64)) / 8.0);
 }
 
-template <uint32_t N>
-std::array<uint8_t, N> LeftShift(const std::array<uint8_t, N>& arr, const uint32_t places) noexcept {
-	static_assert(alignof(arr) % 8 == 0, "Array must be 8-byte aligned");	// Allows reinterpret cast to uint64_t for using 64-bit operations
-	alignas(8) std::array<uint8_t, N> result = {};
+template <uint8_t N>
+union alignas(8) AlignedUInt8Array {
+	std::array<uint64_t, N> data64;
+	std::array<uint8_t, N * 8> data8;
+};
 
+
+template <uint8_t N>
+inline AlignedUInt8Array<N> LeftShift(const AlignedUInt8Array<N>& arr, const uint8_t places) noexcept {
+	// TODO
+}
+
+
+template <typename T, uint8_t N>
+inline void reverseArrayInPlace(std::array<T, N>& arr) noexcept {
+	unroll<N / 2>([&](const uint32_t i) {
+		std::swap(arr[i], arr[N - 1 - i]);
+	});
+}
+
+template <typename T, uint8_t N>
+inline std::array<T, N> reverseArray(const std::array<T, N>& arr) noexcept {
+	std::array<T, N> result;
+	unroll<N>([&](const uint32_t i) {
+		result[N - 1 - i] = arr[i];
+	});
+	return result;
 }
