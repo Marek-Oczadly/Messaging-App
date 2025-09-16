@@ -9,17 +9,6 @@
 #include <string>
 #include "utils.hpp"
 
-#if defined(_DEBUG)
-#define loopUnroll(N) for (uint32_t i = 0; i < N; ++i) {
-#define loopUnrollFrom(M, N) for (uint32_t i = M; i < N; ++i) {
-
-#define endLoop }
-
-#elif defined(NDEBUG)
-#define loopUnroll(N) unroll<N>([&](uint8_t i) {
-#define loopUnrollFrom(M, N) unroll<M, N>([&](uint8_t i) {
-#define endLoop });
-#endif
 
 /// @brief A 256-bit unsigned integer class that can be used for large integer arithmetic
 template <uint8_t N>

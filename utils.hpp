@@ -71,6 +71,18 @@ inline void unrollReverseInclusive(T&& func) {
 	}
 }
 
+#if defined(_DEBUG)
+#define loopUnroll(N) for (uint32_t i = 0; i < N; ++i) {
+#define loopUnrollFrom(M, N) for (uint32_t i = M; i < N; ++i) {
+
+#define endLoop }
+
+#elif defined(NDEBUG)
+#define loopUnroll(N) unroll<N>([&](uint8_t i) {
+#define loopUnrollFrom(M, N) unroll<M, N>([&](uint8_t i) {
+#define endLoop });
+#endif
+
 /// @brief Check if a bit is 1
 inline bool getBit(unsigned int value, const uint8_t bit) noexcept {
 	return (value & (1U << bit)) != 0;
@@ -286,16 +298,16 @@ inline AlignedUInt8Array<N> LeftShift(const AlignedUInt8Array<N>& arr, const uin
 
 template <typename T, uint8_t N>
 inline void reverseArrayInPlace(std::array<T, N>& arr) noexcept {
-	unroll<N / 2>([&](const uint32_t i) {
+	loopUnroll(N / 2)
 		std::swap(arr[i], arr[N - 1 - i]);
-	});
+	endLoop
 }
 
 template <typename T, uint8_t N>
 inline std::array<T, N> reverseArray(const std::array<T, N>& arr) noexcept {
 	std::array<T, N> result;
-	unroll<N>([&](const uint32_t i) {
+	loopUnroll(N)
 		result[N - 1 - i] = arr[i];
-	});
+	endLoop
 	return result;
 }
