@@ -140,10 +140,11 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="bitwise-functions.hpp" />
     <ClInclude Include="largeInt.hpp" />
     <ClInclude Include="masks.hpp" />
-    <ClInclude Include="mathIntriniscs.hpp" />
-    <ClInclude Include="simdDetection.hpp" />
+    <ClInclude Include="math-intrinsics.hpp" />
+    <ClInclude Include="simd-detection.hpp" />
     <ClInclude Include="utils.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

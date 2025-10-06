@@ -3,6 +3,7 @@
 #include "CppUnitTest.h"
 #include "largeInt.hpp"
 #include "utils.hpp"
+#include "bitwise-functions.hpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 

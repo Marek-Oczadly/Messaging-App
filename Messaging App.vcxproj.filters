@@ -23,7 +23,7 @@
     <ClInclude Include="largeInt.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="simdDetection.hpp">
+    <ClInclude Include="simd-detection.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="utils.hpp">
@@ -32,7 +32,10 @@
     <ClInclude Include="masks.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mathIntriniscs.hpp">
+    <ClInclude Include="math-intrinsics.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="bitwise-functions.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

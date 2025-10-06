@@ -8,6 +8,8 @@
 #include <initializer_list>
 #include <string>
 #include "utils.hpp"
+#include "math-intrinsics.hpp"
+#include "bitwise-functions.hpp"
 
 
 /// @brief A 256-bit unsigned integer class that can be used for large integer arithmetic
