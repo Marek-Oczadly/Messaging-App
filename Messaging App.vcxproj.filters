@@ -32,5 +32,8 @@
     <ClInclude Include="masks.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="mathIntriniscs.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
