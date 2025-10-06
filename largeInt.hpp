@@ -91,6 +91,7 @@ private:
 	inline std::array<uint8_t, UINT8_BCD_ARRAY_SIZE(N)> BCD() const noexcept {
 		AlignedUInt8Array<N> byteArray{ .data64 = reverseArray(data) };
 
+
 	}
 
 
@@ -422,6 +423,15 @@ public:
 	template <char M>
 	bool operator !=(const uint_array<M>& other) const noexcept {
 		return not(this->operator==(other));
+	}
+
+	uint_array<N> operator<< (const uint16_t places) {
+		return leftShift<N>(AlignedUInt8Array<N>{.data64 = data}, places);
+	}
+
+	uint_array<N>& operator<<=(const uint16_t places) {
+		data = leftShift<N>(AlignedUInt8Array<N>{.data64 = data}, places).data64;
+		return *this;
 	}
 
 	friend std::ostream& operator<<(std::ostream& os, const uint_array<N>& num) {

@@ -365,6 +365,51 @@ inline AlignedUInt8Array<N> leftShift(const AlignedUInt8Array<N>& arr) {
 	}
 }
 
+template <uint8_t N, uint16_t PLACES>
+inline AlignedUInt8Array<N> rightShift(const AlignedUInt8Array<N>& arr) {
+	if constexpr (PLACES == 0) {
+		return arr;
+	}
+	else if constexpr (PLACES >= 64U * N) {
+		return AlignedUInt8Array<N>({ .data64 = {0} });
+	}
+	else if constexpr(N == 1) {
+		return AlignedUInt8Array<N>({ .data64 = {arr.data64[0] >> PLACES} });
+	}
+	else if constexpr(PLACES % 64 == 0) {
+		constexpr uint8_t wordShifts = PLACES / 64U;
+		AlignedUInt8Array<N> returnVal;
+		loopUnrollFrom(wordShifts, N)
+			returnVal.data64[i] = arr.data64[i - wordShifts];
+		endLoop
+		loopUnroll(wordShifts)
+			returnVal.data64[i] = 0;
+		endLoop
+		return returnVal;
+	}
+	else {
+		constexpr uint8_t interWordShifts = PLACES / 64U;
+		constexpr uint8_t intraWordShiftsR = PLACES % 64U;
+		constexpr uint8_t intraWordShiftsL = 64U - intraWordShiftsR;
+		if constexpr (interWordShifts >= N) {
+			return AlignedUInt8Array<N>({ .data64 = {0} });
+		}
+		AlignedUInt8Array<N> returnVal;
+		uint64_t high = arr.data64[N - 1 - interWordShifts] >> intraWordShiftsR;
+		uint64_t low;
+		loopUnroll(interWordShifts)
+			returnVal.data64[N - 1 - i] = 0;
+		endLoop
+		loopUnrollFrom(interWordShifts + 1, N)
+			low = arr.data64[N - 1 - i] << intraWordShiftsL;
+			returnVal.data64[N - i + interWordShifts] = high | low;
+			high = arr.data64[N - 1 - i] >> intraWordShiftsR;
+		endLoop
+		returnVal.data64[interWordShifts] = high;
+		return returnVal;
+	}
+}
+
 
 template <typename T, uint8_t N>
 inline void reverseArrayInPlace(std::array<T, N>& arr) noexcept {
