@@ -1,3 +1,7 @@
+// Author : Marek Oczadly
+// License : MIT
+// bitwise-functions.hpp
+
 #pragma once
 #include <cstdint>
 #include <array>
@@ -140,4 +144,17 @@ inline AlignedUInt8Array<N> rightShift(const AlignedUInt8Array<N>& arr) {
 			returnVal.data64[interWordShifts] = high;
 		return returnVal;
 	}
+}
+
+
+template <uint8_t N>
+std::wstring byteArrayToBinaryString(const AlignedUInt8Array<N>& arr) noexcept {
+	std::wstringstream ss;
+	ss << L'{';
+	for (uint8_t i = 0; i < 8 * N; ++i) {
+		std::bitset<8> bits(arr.data8[i]);
+		ss << bits << L' ';
+	}
+	ss << L'}';
+	return ss.str();
 }

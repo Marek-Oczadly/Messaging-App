@@ -1,3 +1,7 @@
+// Author : Marek Oczadly
+// License : MIT
+// UnitTests.cpp
+
 #include <iomanip>
 #include "pch.h"
 #include "CppUnitTest.h"

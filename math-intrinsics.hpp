@@ -1,3 +1,7 @@
+// Author : Marek Oczadly
+// License : MIT
+// math-intrinsics.hpp
+
 #pragma once
 #include <cstdint>
 
