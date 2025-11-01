@@ -68,11 +68,12 @@ private:
 		}
 	}
 
+	// Base = 2^64
 	template <uint8_t M>
 	inline uint_array<maxValue(N, M)> karatsubaMultiply(const uint_array<M>& other) const noexcept {
 		if constexpr (N == M) {
 			uint_array<N> result;
-			// TODO
+			
 		}
 		else if constexpr (N > M) {
 			// TODO
@@ -91,6 +92,8 @@ private:
 
 		}
 	}
+
+	
 
 
 	inline std::array<uint8_t, UINT8_BCD_ARRAY_SIZE(N)> BCD() const noexcept {
