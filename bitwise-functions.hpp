@@ -39,8 +39,12 @@ union alignas(8) AlignedUInt8Array {
 		}
 		else {
 			AlignedUInt8Array<N> returnVal{ .data64 = {0} };
-			if (places >= 64U * N) return returnVal;	// All bits shifted out
-			if (places == 0) return AlignedUInt8Array<N>{ .data64 = data64 };				// No shift needed
+			if (places >= 64U * N) { 
+				return returnVal; 
+			}	// All bits shifted out
+			if (places == 0) { 
+				return AlignedUInt8Array<N>{.data64 = data64 }; 
+			}	// No shift needed
 			const uint8_t interWordShifts = places / 64U;
 			const uint8_t intraWordShiftsL = places % 64U;
 			const uint8_t intraWordShiftsR = 64U - intraWordShiftsL;
@@ -54,6 +58,35 @@ union alignas(8) AlignedUInt8Array {
 			}
 			returnVal.data64[N - interWordShifts - 1] = low;
 			return returnVal;
+		}
+	}
+
+	inline AlignedUInt8Array<N>& operator<<=(const uint16_t places) noexcept {
+		if constexpr (N == 1) {
+			data64[0] <<= places;
+			return *this;
+		}
+		else {
+			if (places >= 64U * N) {
+				data64.fill(0);
+				return *this;
+			}
+			if (places == 0) {
+				return *this;
+			}
+			const uint8_t interWordShifts = places / 64U;
+			const uint8_t intraWordShiftsL = places % 64U;
+			const uint8_t intraWordShiftsR = 64U - intraWordShiftsL;
+			uint64_t low = data64[interWordShifts] << intraWordShiftsL;
+			uint64_t high;
+
+			for (uint8_t i = interWordShifts + 1; i < N; ++i) {
+				high = data64[i] >> intraWordShiftsR;
+				data64[i - interWordShifts - 1] = high | low;
+				low = data64[i] << intraWordShiftsL;
+			}
+			data64[N - interWordShifts - 1] = low;
+			return *this;
 		}
 	}
 
@@ -100,6 +133,59 @@ union alignas(8) AlignedUInt8Array {
 				returnVal.data64[N - interWordShifts - 1] = low;
 			return returnVal;
 		}
+	}
+
+	template <uint16_t PLACES>
+	inline AlignedUInt8Array<N>& leftShiftInPlace() noexcept {
+		if constexpr (PLACES == 0) {
+			return *this;
+		}
+		else if constexpr (PLACES >= 64U * N) {
+			data64.fill(0);
+			return *this;
+		}
+		else if constexpr (N == 1) {
+			data64[0] <<= PLACES;
+			return *this;
+		}
+		else if constexpr (PLACES % 64 == 0) {
+			constexpr uint8_t wordShifts = PLACES / 64U;
+			loopUnroll(N - wordShifts)
+				data64[i] = data64[i + wordShifts];
+			endLoop
+				loopUnrollFrom(N - wordShifts, N)
+				data64[i] = 0;
+			endLoop
+				return *this;
+		}
+		else {
+			constexpr uint8_t interWordShifts = PLACES / 64U;
+			constexpr uint8_t intraWordShiftsL = PLACES % 64U;
+			constexpr uint8_t intraWordShiftsR = 64U - intraWordShiftsL;
+			if constexpr (interWordShifts >= N) {
+				data64.fill(0);
+				return *this;
+			}
+			uint64_t low = data64[interWordShifts] << intraWordShiftsL;
+			uint64_t high;
+			loopUnroll(N - interWordShifts - 1)
+				data64[i] = 0;
+			endLoop
+			loopUnrollFrom(interWordShifts + 1, N)
+				high = data64[i] >> intraWordShiftsR;
+			data64[i - interWordShifts - 1] = high | low;
+			low = data64[i] << intraWordShiftsL;
+			endLoop
+			data64[N - interWordShifts - 1] = low;
+			return *this;
+		}
+	}
+	
+	inline uint8_t getBit(const uint16_t idx) const noexcept {
+		// No bounds checking for performance. Only used internally with valid indices.
+		const uint16_t byteIdx = idx / 8U;
+		const uint8_t bitIdx = idx % 8U;
+		return (data8[byteIdx] >> bitIdx) & 0x01U;
 	}
 };
 
@@ -161,13 +247,36 @@ std::wstring byteArrayToBinaryString(const AlignedUInt8Array<N>& arr) noexcept {
 	return ss.str();
 }
 
+inline void add3Module(uint8_t& bcd_byte) noexcept {
+	bcd_byte += ((bcd_byte << 4) >= 0x0500) ? 0x03 : 0x00;
+	bcd_byte += ((bcd_byte >> 4) >= 0x05) ? 0x0300 : 0x00;
+}
+
+inline void add3Module(uint64_t& bcd_word) noexcept {
+	std::array<uint8_t, 8>& byte_arr = reinterpret_cast<std::array<uint8_t, 8>&>(bcd_word);
+	add3Module(byte_arr[0]);
+	add3Module(byte_arr[1]);
+	add3Module(byte_arr[2]);
+	add3Module(byte_arr[3]);
+	add3Module(byte_arr[4]);
+	add3Module(byte_arr[5]);
+	add3Module(byte_arr[6]);
+	add3Module(byte_arr[7]);
+}
+
 template <uint8_t N>
 inline AlignedUInt8Array<UINT64_BCD_ARRAY_SIZE(N)> binaryToBCD(const AlignedUInt8Array<N>& arr) noexcept {
 	constexpr auto BCD_SIZE_BITS = BCD_BITWIDTH(64ULL * N);
 	constexpr auto BCD_ARR_WIDTH = UINT64_BCD_ARRAY_SIZE(N);
 
 	AlignedUInt8Array<BCD_ARR_WIDTH> bcdArray{ .data64 = {0} };
-
-
-
+	
+	for (uint16_t i = 0; i < BCD_ARR_WIDTH; ++i) {
+		bcdArray.leftShiftInPlace<1>();
+		bcdArray.data64[BCD_ARR_WIDTH - 1] |= arr.getBit(N * 8 - 1 - i);
+		loopUnroll(BCD_ARR_WIDTH)
+			add3Module(bcdArray.data64[i]);
+		endLoop
+	}
+	return bcdArray;
 }

@@ -83,29 +83,8 @@ private:
 		}
 	}
 
-	/// @brief Add3 module for binary to BCD conversion
-	/// @param num The number
-	/// @return The result of adding 3 if num >= 5, otherwise returns num
-	template <uint16_t WORDS>
-	static inline uint8_t add3(const uint64_t& num) noexcept {
-		if constexpr (WORDS == 0b1) {
-
-		}
-	}
-
-	
-
-
-	inline std::array<uint8_t, UINT8_BCD_ARRAY_SIZE(N)> BCD() const noexcept {
-		if constexpr (N == 1) {
-			return { 0 };
-		}
-		else {
-
-		}
-		AlignedUInt8Array<N> byteArray{ .data64 = reverseArray(data) };
-
-
+	inline AlignedUInt8Array<UINT64_BCD_ARRAY_SIZE(N)> BCD() const noexcept {
+		return binaryToBCD(AlignedUInt8Array<N>{.data64 = data });
 	}
 
 
@@ -449,21 +428,21 @@ public:
 	}
 
 	friend std::ostream& operator<<(std::ostream& os, const uint_array<N>& num) {
-		// Temporary - will print in base 10 soon
-		for (int i = N - 1; i >= 0; --i) {
-			os << num.data[i] << ' ';
+		constexpr auto numBytes = UINT64_BCD_ARRAY_SIZE(N) * 8;
+		auto bcdArray = num.BCD();
+		for (int i = numBytes - 1; i >= 0; --i) {
+			os << std::hex << (bcdArray.data8[i] >> 4) << std::hex << (bcdArray.data8[i] & 0x0F);
 		}
 		return os;
 	}
 
 	std::wstring ToString() {
+		auto bcdArray = BCD();
 		std::wstringstream ss;
-		ss << '{';
-		for (char i = N - 1; i >= 0; --i) {
-			ss << data[i] << ',';
+		for (int i = UINT64_BCD_ARRAY_SIZE(N) * 8 - 1; i >= 0; --i) {
+			ss << std::hex << (bcdArray.data8[i] >> 4);
+			ss << std::hex << (bcdArray.data8[i] & 0x0F);
 		}
-		ss << '}';
-		return ss.str();
 	}
 };
 

@@ -11,11 +11,13 @@ Compilation information:
 */
 
 
-#include "simd-detection.hpp"
+#include "largeInt.hpp"
+#include <iostream>
 
 int main() {
-	SIMDIntegerSupport simdSupport;
-	simdSupport.displaySupport();
+	uint512_t a = 12345678901234567890ULL;
+
+	std::cout << "a: " << a << NEWL;
 
 	return 0;
 }
