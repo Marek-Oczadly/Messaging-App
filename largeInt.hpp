@@ -419,11 +419,11 @@ public:
 	}
 
 	uint_array<N> operator<<(const uint16_t places) {
-		return leftShift<N>(AlignedUInt8Array<N>{.data64 = data}, places);
+		return leftShift(data, places);
 	}
 
 	uint_array<N>& operator<<=(const uint16_t places) {
-		data = leftShift<N>(AlignedUInt8Array<N>{.data64 = data}, places).data64;
+		leftShiftInPlace(data, places);
 		return *this;
 	}
 

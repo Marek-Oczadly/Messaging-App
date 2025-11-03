@@ -3,6 +3,7 @@
 // UnitTests.cpp
 
 #include <iomanip>
+#include <cstdint>
 #include "pch.h"
 #include "CppUnitTest.h"
 #include "largeInt.hpp"
@@ -30,6 +31,18 @@ namespace Microsoft {															\
 	}																			\
 }
 
+#define DEFINE_ARR_TO_STRING(N)													\
+namespace Microsoft {															\
+	namespace VisualStudio {													\
+		namespace CppUnitTestFramework {										\
+			template <>															\
+			std::wstring ToString<Arr64<N>>(const Arr64<N>& q) {				\
+				return byteArrayToBinaryString<N>(q);							\
+			}																	\
+		}																		\
+	}																			\
+}
+
 
 #ifdef DEFINE_UINT_ARRAY_TOSTRING
 DEFINE_UINT_ARRAY_TOSTRING(4);
@@ -37,10 +50,10 @@ DEFINE_UINT_ARRAY_TOSTRING(8);
 DEFINE_UINT_ARRAY_TOSTRING(16);
 #endif
 
-#ifdef DEFINE_ALIGNED_UINT8_ARRAY_TOSTRING
-DEFINE_ALIGNED_UINT8_ARRAY_TOSTRING(1);
-DEFINE_ALIGNED_UINT8_ARRAY_TOSTRING(2);
-DEFINE_ALIGNED_UINT8_ARRAY_TOSTRING(4);
+#ifdef DEFINE_ARR_TO_STRING
+DEFINE_ARR_TO_STRING(1);
+DEFINE_ARR_TO_STRING(2);
+DEFINE_ARR_TO_STRING(4);
 #endif
 
 
@@ -235,7 +248,7 @@ namespace BITWISE_FUNCTIONS {
 	};
 
 	TEST_CLASS(LEFT_SHIFT_COMPILETIME) {
-	
+
 	public:
 		TEST_METHOD(LEFT_SHIFT_1_ELEM) {
 			Arr64<1> test = { { 0b0101011011001010110101111101001011000100001011011110110100101101ULL} };
@@ -247,14 +260,14 @@ namespace BITWISE_FUNCTIONS {
 		TEST_METHOD(LEFT_SHIFT_1_ELEM_INPLACE) {
 			Arr64<1> test = { { 0b0101011011001010110101111101001011000100001011011110110100101101ULL} };
 			constexpr uint8_t places = 13U;
-			
+
 			Arr64<1> expected = { 0b0101011011001010110101111101001011000100001011011110110100101101ULL << places };
 			leftShiftInPlace<1, places>(test);
 			Assert::AreEqual(expected, test);
 		}
 
 		TEST_METHOD(LEFT_SHIFT_NO_PLACES) {
-			Arr64<2> test ={ 0x1234567890ABCDEF, 0x0FEDCBA098765432 };
+			Arr64<2> test = { 0x1234567890ABCDEF, 0x0FEDCBA098765432 };
 
 			constexpr uint8_t places = 0u;
 
@@ -293,7 +306,7 @@ namespace BITWISE_FUNCTIONS {
 			Arr64<2> expected = { 0x0000000000000020, 0x0000000000000000 };
 			Assert::AreEqual(expected, leftShift<2, places>(test));
 		}
-		
+
 		TEST_METHOD(LEFT_SHIFT_ACROSS_BOUNDARY_INPLACE) {
 			Arr64<2> test = { 0x0000000000000001, 0x0000000000000002 };
 			constexpr uint8_t places = 68;
@@ -308,7 +321,7 @@ namespace BITWISE_FUNCTIONS {
 			Arr64<2> expected = { 0x5555555555555555, 0x0000000000000000 };
 			Assert::AreEqual(expected, leftShift<2, places>(test));
 		}
-		
+
 		TEST_METHOD(LEFT_SHIFT_FULL_WORD_INPLACE) {
 			Arr64<2> test = { 0xAAAAAAAAAAAAAAAA, 0x5555555555555555 };
 			constexpr uint8_t places = 64;
@@ -330,5 +343,6 @@ namespace BITWISE_FUNCTIONS {
 			Arr64<4> expected = { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000 };
 			leftShiftInPlace<4, places>(test);
 			Assert::AreEqual(expected, test);
+		}
 	};
 }

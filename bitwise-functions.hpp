@@ -107,7 +107,7 @@ inline Arr64<N> leftShift(const Arr64<N>& arr) noexcept {
 		Arr64<N> returnVal;
 
 		loopUnroll(N - wordShifts)
-			returnVal = arr[i + wordShifts];
+			returnVal[i] = arr[i + wordShifts];
 		endLoop
 
 		loopUnrollFrom(N - wordShifts, N)
@@ -123,7 +123,7 @@ inline Arr64<N> leftShift(const Arr64<N>& arr) noexcept {
 		if constexpr (interWordShifts >= N) {
 			return Arr64<N>{0};
 		}
-		AlignedUInt8Array<N> returnVal;
+		Arr64<N> returnVal;
 		uint64_t low = arr[interWordShifts] << intraWordShiftsL;
 		uint64_t high;
 		loopUnroll(N - interWordShifts - 1)
@@ -164,7 +164,7 @@ inline void leftShiftInPlace(Arr64<N>& arr) noexcept {
 			arr[i] = 0;
 		endLoop
 			
-		return *this;
+		return;
 	}
 	else {
 		constexpr uint8_t interWordShifts = PLACES / 64U;
@@ -172,7 +172,7 @@ inline void leftShiftInPlace(Arr64<N>& arr) noexcept {
 		constexpr uint8_t intraWordShiftsR = 64U - intraWordShiftsL;
 		if constexpr (interWordShifts >= N) {
 			arr.fill(0);
-			return *this;
+			return;
 		}
 		uint64_t low = arr[interWordShifts] << intraWordShiftsL;
 		uint64_t high;
@@ -201,7 +201,6 @@ std::wstring byteArrayToBinaryString(const Arr64<N>& arr) noexcept {
 	std::wstringstream ss;
 	ss << L'{';
 	for (uint8_t i = 0; i < 8 * N; ++i) {
-
 		std::bitset<8> bits(arr[i]);
 		ss << bits << L' ';
 	}
