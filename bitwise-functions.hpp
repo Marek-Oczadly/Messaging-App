@@ -30,17 +30,6 @@ constexpr uint64_t UINT64_BCD_ARRAY_SIZE(const uint64_t uint64_count) noexcept {
 }
 
 template <uint8_t N>
-union alignas(8) AlignedUInt8Array {
-#if defined(_DEBUG)
-	uint64_t data64[N];
-	uint8_t data8[N * 8];
-#else
-	std::array<uint64_t, N> data64;
-	std::array<uint8_t, N * 8> data8;
-#endif
-};
-
-template <uint8_t N>
 using Arr64 = std::array<uint64_t, N>;
 
 template <uint8_t N>

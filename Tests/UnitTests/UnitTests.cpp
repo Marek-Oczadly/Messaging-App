@@ -30,18 +30,6 @@ namespace Microsoft {															\
 	}																			\
 }
 
-#define DEFINE_ALIGNED_UINT8_ARRAY_TOSTRING(N)									\
-namespace Microsoft {															\
-	namespace VisualStudio {													\
-		namespace CppUnitTestFramework {										\
-			template <>															\
-			std::wstring ToString<AlignedUInt8Array<N>>(						\
-												const AlignedUInt8Array<N>& q) {\
-				return byteArrayToBinaryString<N>(q);							\
-			}																	\
-		}																		\
-	}																			\
-}
 
 #ifdef DEFINE_UINT_ARRAY_TOSTRING
 DEFINE_UINT_ARRAY_TOSTRING(4);
@@ -143,108 +131,204 @@ namespace LARGE_INT {
 	};
 }
 
-namespace UTILS {
+namespace BITWISE_FUNCTIONS {
 	TEST_CLASS(LEFT_SHIFT_RUNTIME) {
 
 	public:
 		TEST_METHOD(LEFT_SHIFT_NO_BYTES) {
-			AlignedUInt8Array<1> test = { .data8 = { 0b01010110, 0b11001010, 0b11010111, 0b11010010,
-													 0b11000100, 0b00101101, 0b11101101, 0b00101101} };
+			Arr64<1> test = { { 0b0101011011001010110101111101001011000100001011011110110100101101ULL} };
 			const uint8_t places = 13U;
 
-			AlignedUInt8Array<1> expected = {};
-			expected.data64[0] = (3309351624561379926 << places);
+			Arr64<1> expected = { 0b0101011011001010110101111101001011000100001011011110110100101101ULL << places };
 			Assert::AreEqual(expected, leftShift(test, places));
+		}
+		TEST_METHOD(LEFT_SHIFT_INPLACE_NO_BYTES) {
+			Arr64<1> test = { { 0b0101011011001010110101111101001011000100001011011110110100101101ULL} };
+			const uint8_t places = 13U;
+
+			Arr64<1> expected = { 0b0101011011001010110101111101001011000100001011011110110100101101ULL << places };
+			leftShiftInPlace(test, places);
+			Assert::AreEqual(expected, test);
 		}
 
 		TEST_METHOD(LEFT_SHIFT_NO_PLACES) {
-			AlignedUInt8Array<2> test = { .data64 = { 0x1234567890ABCDEF, 0x0FEDCBA098765432 } };
+			Arr64<2> test = { 0x1234567890ABCDEF, 0x0FEDCBA098765432 };
 
 			const uint8_t places = 0u;
-			AlignedUInt8Array<2> expected = test;
+			Arr64<2> expected = test;
 			Assert::AreEqual(expected, leftShift(test, places));
+		}
+		TEST_METHOD(LEFT_SHIFT_NO_PLACES_INPLACE) {
+			Arr64<2> test = { 0x1234567890ABCDEF, 0x0FEDCBA098765432 };
+			
+			const uint8_t places = 0u;
+			Arr64<2> expected = test;
+			leftShiftInPlace(test, places);
+			Assert::AreEqual(expected, test);
 		}
 
 		TEST_METHOD(LEFT_SHIFT_SIMPLE) {
-			AlignedUInt8Array<2> test = { .data64 = {0x0000000000000001, 0x0000000000000000} };
+			Arr64<2> test = {0x0000000000000001, 0x0000000000000000};
 			const uint8_t places = 4;
 
-			AlignedUInt8Array<2> expected = { .data64 = {0x0000000000000010, 0x0000000000000000} };
+			Arr64<2> expected = { 0x0000000000000010, 0x0000000000000000 };
 			Assert::AreEqual(expected, leftShift(test, places));
+		}
+
+		TEST_METHOD(LEFT_SHIFT_SIMPLE_INPLACE) {
+			Arr64<2> test = { 0x0000000000000001, 0x0000000000000000 };
+			const uint8_t places = 4;
+
+			Arr64<2> expected = { 0x0000000000000010, 0x0000000000000000 };
+			leftShiftInPlace(test, places);
+			Assert::AreEqual(expected, test);
 		}
 
 		TEST_METHOD(LEFT_SHIFT_ACROSS_BOUNDARY) {
-			AlignedUInt8Array<2> test = { .data64 = {0x0000000000000001, 0x0000000000000002} };
+			Arr64<2> test = { 0x0000000000000001, 0x0000000000000002 };
 			const uint8_t places = 68;
-			AlignedUInt8Array<2> expected = { .data64 = {0x0000000000000020, 0x0000000000000000} };
+			Arr64<2> expected = { 0x0000000000000020, 0x0000000000000000 };
 			Assert::AreEqual(expected, leftShift(test, places));
+		}
+		
+		TEST_METHOD(LEFT_SHIFT_ACROSS_BOUNDARY_INPLACE) {
+			Arr64<2> test = { 0x0000000000000001, 0x0000000000000002 };
+			const uint8_t places = 68;
+			Arr64<2> expected = { 0x0000000000000020, 0x0000000000000000 };
+
+			leftShiftInPlace(test, places);
+			Assert::AreEqual(expected, test);
 		}
 
 		TEST_METHOD(LEFT_SHIFT_FULL_WORD) {
-			AlignedUInt8Array<2> test = { .data64 = {0xAAAAAAAAAAAAAAAA, 0x5555555555555555} };
+			Arr64<2> test = { 0xAAAAAAAAAAAAAAAA, 0x5555555555555555 };
 			const uint8_t places = 64;
-			AlignedUInt8Array<2> expected = { .data64 = {0x5555555555555555, 0x0000000000000000} };
+			Arr64<2> expected = { 0x5555555555555555, 0x0000000000000000 };
 			Assert::AreEqual(expected, leftShift(test, places));
 		}
 
+		TEST_METHOD(LEFT_SHIFT_FULL_WORD_INPLACE) {
+			Arr64<2> test = { 0xAAAAAAAAAAAAAAAA, 0x5555555555555555 };
+			const uint8_t places = 64;
+			Arr64<2> expected = { 0x5555555555555555, 0x0000000000000000 };
+			
+			leftShiftInPlace(test, places);
+			Assert::AreEqual(expected, test);
+		}
+
 		TEST_METHOD(LEFT_SHIFT_BEYOND_WIDTH) {
-			AlignedUInt8Array<4> test = { .data64 = {0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF} };
+			Arr64<4> test = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
 			const uint16_t places = 267;	// 4*64=256 < 260 < 5*64=320
-			AlignedUInt8Array<4> expected = { .data64 = {0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000} };
+			Arr64<4> expected = { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000 };
 			Assert::AreEqual(expected, leftShift(test, places));
+		}
+
+		TEST_METHOD(LEFT_SHIFT_BEYOND_WIDTH_INPLACE) {
+			Arr64<4> test = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
+			const uint16_t places = 267;	// 4*64=256 < 260 < 5*64=320
+			Arr64<4> expected = { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000 };
+
+			leftShiftInPlace(test, places);
+			Assert::AreEqual(expected, test);
+
 		}
 	};
 
 	TEST_CLASS(LEFT_SHIFT_COMPILETIME) {
 	
 	public:
-		TEST_METHOD(LEFT_SHIFT_NO_BYTES) {
-			AlignedUInt8Array<1> test = { .data8 = { 0b01010110, 0b11001010, 0b11010111, 0b11010010,
-													 0b11000100, 0b00101101, 0b11101101, 0b00101101} };
+		TEST_METHOD(LEFT_SHIFT_1_ELEM) {
+			Arr64<1> test = { { 0b0101011011001010110101111101001011000100001011011110110100101101ULL} };
 			constexpr uint8_t places = 13U;
 
-			AlignedUInt8Array<1> expected = {};
-			expected.data64[0] = (3309351624561379926 << places);
+			Arr64<1> expected = { 0b0101011011001010110101111101001011000100001011011110110100101101ULL << places };
 			Assert::AreEqual(expected, leftShift<1, places>(test));
+		}
+		TEST_METHOD(LEFT_SHIFT_1_ELEM_INPLACE) {
+			Arr64<1> test = { { 0b0101011011001010110101111101001011000100001011011110110100101101ULL} };
+			constexpr uint8_t places = 13U;
+			
+			Arr64<1> expected = { 0b0101011011001010110101111101001011000100001011011110110100101101ULL << places };
+			leftShiftInPlace<1, places>(test);
+			Assert::AreEqual(expected, test);
 		}
 
 		TEST_METHOD(LEFT_SHIFT_NO_PLACES) {
-			AlignedUInt8Array<2> test = { .data64 = { 0x1234567890ABCDEF, 0x0FEDCBA098765432 } };
+			Arr64<2> test ={ 0x1234567890ABCDEF, 0x0FEDCBA098765432 };
 
 			constexpr uint8_t places = 0u;
 
-			AlignedUInt8Array<2> expected = test;
+			Arr64<2> expected = test;
 			Assert::AreEqual(expected, leftShift<2, places>(test));
+		}
+
+		TEST_METHOD(LEFT_SHIFT_NO_PLACES_INPLACE) {
+			Arr64<2> test = { 0x1234567890ABCDEF, 0x0FEDCBA098765432 };
+			constexpr uint8_t places = 0u;
+			Arr64<2> expected = test;
+			leftShiftInPlace<2, places>(test);
+			Assert::AreEqual(expected, test);
 		}
 
 		TEST_METHOD(LEFT_SHIFT_SIMPLE) {
-			AlignedUInt8Array<2> test = { .data64 = {0x0000000000000001, 0x0000000000000000} };
+			Arr64<2> test = { 0x0000000000000001, 0x0000000000000000 };
 			constexpr uint8_t places = 4;
 
-			AlignedUInt8Array<2> expected = { .data64 = {0x0000000000000010, 0x0000000000000000} };
+			Arr64<2> expected = { 0x0000000000000010, 0x0000000000000000 };
 
 			Assert::AreEqual(expected, leftShift<2, places>(test));
+		}
+
+		TEST_METHOD(LEFT_SHIFT_SIMPLE_INPLACE) {
+			Arr64<2> test = { 0x0000000000000001, 0x0000000000000000 };
+			constexpr uint8_t places = 4;
+			Arr64<2> expected = { 0x0000000000000010, 0x0000000000000000 };
+			leftShiftInPlace<2, places>(test);
+			Assert::AreEqual(expected, test);
 		}
 
 		TEST_METHOD(LEFT_SHIFT_ACROSS_BOUNDARY) {
-			AlignedUInt8Array<2> test = { .data64 = {0x0000000000000001, 0x0000000000000002} };
+			Arr64<2> test = { 0x0000000000000001, 0x0000000000000002 };
 			constexpr uint8_t places = 68;
-			AlignedUInt8Array<2> expected = { .data64 = {0x0000000000000020, 0x0000000000000000} };
+			Arr64<2> expected = { 0x0000000000000020, 0x0000000000000000 };
 			Assert::AreEqual(expected, leftShift<2, places>(test));
+		}
+		
+		TEST_METHOD(LEFT_SHIFT_ACROSS_BOUNDARY_INPLACE) {
+			Arr64<2> test = { 0x0000000000000001, 0x0000000000000002 };
+			constexpr uint8_t places = 68;
+			Arr64<2> expected = { 0x0000000000000020, 0x0000000000000000 };
+			leftShiftInPlace<2, places>(test);
+			Assert::AreEqual(expected, test);
 		}
 
 		TEST_METHOD(LEFT_SHIFT_FULL_WORD) {
-			AlignedUInt8Array<2> test = { .data64 = {0xAAAAAAAAAAAAAAAA, 0x5555555555555555} };
+			Arr64<2> test = { 0xAAAAAAAAAAAAAAAA, 0x5555555555555555 };
 			constexpr uint8_t places = 64;
-			AlignedUInt8Array<2> expected = { .data64 = {0x5555555555555555, 0x0000000000000000} };
+			Arr64<2> expected = { 0x5555555555555555, 0x0000000000000000 };
 			Assert::AreEqual(expected, leftShift<2, places>(test));
+		}
+		
+		TEST_METHOD(LEFT_SHIFT_FULL_WORD_INPLACE) {
+			Arr64<2> test = { 0xAAAAAAAAAAAAAAAA, 0x5555555555555555 };
+			constexpr uint8_t places = 64;
+			Arr64<2> expected = { 0x5555555555555555, 0x0000000000000000 };
+			leftShiftInPlace<2, places>(test);
+			Assert::AreEqual(expected, test);
 		}
 
 		TEST_METHOD(LEFT_SHIFT_BEYOND_WIDTH) {
-			AlignedUInt8Array<4> test = { .data64 = {0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF} };
+			Arr64<4> test = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
 			constexpr uint16_t places = 267;	// 4*64=256 < 260 < 5*64=320
-			AlignedUInt8Array<4> expected = { .data64 = {0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000} };
+			Arr64<4> expected = { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000 };
 			Assert::AreEqual(expected, leftShift<4, places>(test));
 		}
+
+		TEST_METHOD(LEFT_SHIFT_BEYOND_WIDTH_INPLACE) {
+			Arr64<4> test = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
+			constexpr uint16_t places = 267;	// 4*64=256 < 260 < 5*64=320
+			Arr64<4> expected = { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000 };
+			leftShiftInPlace<4, places>(test);
+			Assert::AreEqual(expected, test);
 	};
 }
