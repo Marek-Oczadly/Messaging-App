@@ -7,6 +7,11 @@
 #include <array>
 #include "utils.hpp"
 
+#ifdef _DEBUG
+#include <bit>
+#endif
+
+
 
 constexpr uint64_t CEIL(const double value) noexcept {
 	return (static_cast<uint64_t>(value) == value) ? static_cast<uint64_t>(value) : static_cast<uint64_t>(value) + 1;
@@ -26,225 +31,199 @@ constexpr uint64_t UINT64_BCD_ARRAY_SIZE(const uint64_t uint64_count) noexcept {
 
 template <uint8_t N>
 union alignas(8) AlignedUInt8Array {
+#if defined(_DEBUG)
+	uint64_t data64[N];
+	uint8_t data8[N * 8];
+#else
 	std::array<uint64_t, N> data64;
 	std::array<uint8_t, N * 8> data8;
-
-	bool operator==(const AlignedUInt8Array<N>& other) const noexcept {
-		return data64 == other.data64;
-	}
-
-	inline AlignedUInt8Array<N> operator<<(const uint16_t places) const noexcept {
-		if constexpr (N == 1) {	// Evaluated at compile time so no performance impact
-			return AlignedUInt8Array<N>({ .data64 = {data64[0] << places} });
-		}
-		else {
-			AlignedUInt8Array<N> returnVal{ .data64 = {0} };
-			if (places >= 64U * N) { 
-				return returnVal; 
-			}	// All bits shifted out
-			if (places == 0) { 
-				return AlignedUInt8Array<N>{.data64 = data64 }; 
-			}	// No shift needed
-			const uint8_t interWordShifts = places / 64U;
-			const uint8_t intraWordShiftsL = places % 64U;
-			const uint8_t intraWordShiftsR = 64U - intraWordShiftsL;
-			uint64_t low = data64[interWordShifts] << intraWordShiftsL;
-			uint64_t high;
-
-			for (uint8_t i = interWordShifts + 1; i < N; ++i) {
-				high = data64[i] >> intraWordShiftsR;
-				returnVal.data64[i - interWordShifts - 1] = high | low;
-				low = data64[i] << intraWordShiftsL;
-			}
-			returnVal.data64[N - interWordShifts - 1] = low;
-			return returnVal;
-		}
-	}
-
-	inline AlignedUInt8Array<N>& operator<<=(const uint16_t places) noexcept {
-		if constexpr (N == 1) {
-			data64[0] <<= places;
-			return *this;
-		}
-		else {
-			if (places >= 64U * N) {
-				data64.fill(0);
-				return *this;
-			}
-			if (places == 0) {
-				return *this;
-			}
-			const uint8_t interWordShifts = places / 64U;
-			const uint8_t intraWordShiftsL = places % 64U;
-			const uint8_t intraWordShiftsR = 64U - intraWordShiftsL;
-			uint64_t low = data64[interWordShifts] << intraWordShiftsL;
-			uint64_t high;
-
-			for (uint8_t i = interWordShifts + 1; i < N; ++i) {
-				high = data64[i] >> intraWordShiftsR;
-				data64[i - interWordShifts - 1] = high | low;
-				low = data64[i] << intraWordShiftsL;
-			}
-			data64[N - interWordShifts - 1] = low;
-			return *this;
-		}
-	}
-
-	template <uint16_t PLACES>
-	inline AlignedUInt8Array<N> leftShift() const noexcept {
-		if constexpr (PLACES == 0) {
-			return AlignedUInt8Array<N>{.data64 = data64 };
-		}
-		else if constexpr (PLACES >= 64U * N) {
-			return AlignedUInt8Array<N>({ .data64 = {0} });
-		}
-		else if constexpr (N == 1) {
-			return AlignedUInt8Array<N>({ .data64 = {data64[0] << PLACES} });
-		}
-		else if constexpr (PLACES % 64 == 0) {
-			constexpr uint8_t wordShifts = PLACES / 64U;
-			AlignedUInt8Array<N> returnVal;
-			loopUnroll(N - wordShifts)
-				returnVal.data64[i] = data64[i + wordShifts];
-			endLoop
-				loopUnrollFrom(N - wordShifts, N)
-				returnVal.data64[i] = 0;
-			endLoop
-				return returnVal;
-		}
-		else {
-			constexpr uint8_t interWordShifts = PLACES / 64U;
-			constexpr uint8_t intraWordShiftsL = PLACES % 64U;
-			constexpr uint8_t intraWordShiftsR = 64U - intraWordShiftsL;
-			if constexpr (interWordShifts >= N) {
-				return AlignedUInt8Array<N>({ .data64 = {0} });
-			}
-			AlignedUInt8Array<N> returnVal;
-			uint64_t low = data64[interWordShifts] << intraWordShiftsL;
-			uint64_t high;
-			loopUnroll(N - interWordShifts - 1)
-				returnVal.data64[i] = 0;
-			endLoop
-				loopUnrollFrom(interWordShifts + 1, N)
-				high = data64[i] >> intraWordShiftsR;
-			returnVal.data64[i - interWordShifts - 1] = high | low;
-			low = data64[i] << intraWordShiftsL;
-			endLoop
-				returnVal.data64[N - interWordShifts - 1] = low;
-			return returnVal;
-		}
-	}
-
-	template <uint16_t PLACES>
-	inline AlignedUInt8Array<N>& leftShiftInPlace() noexcept {
-		if constexpr (PLACES == 0) {
-			return *this;
-		}
-		else if constexpr (PLACES >= 64U * N) {
-			data64.fill(0);
-			return *this;
-		}
-		else if constexpr (N == 1) {
-			data64[0] <<= PLACES;
-			return *this;
-		}
-		else if constexpr (PLACES % 64 == 0) {
-			constexpr uint8_t wordShifts = PLACES / 64U;
-			loopUnroll(N - wordShifts)
-				data64[i] = data64[i + wordShifts];
-			endLoop
-				loopUnrollFrom(N - wordShifts, N)
-				data64[i] = 0;
-			endLoop
-				return *this;
-		}
-		else {
-			constexpr uint8_t interWordShifts = PLACES / 64U;
-			constexpr uint8_t intraWordShiftsL = PLACES % 64U;
-			constexpr uint8_t intraWordShiftsR = 64U - intraWordShiftsL;
-			if constexpr (interWordShifts >= N) {
-				data64.fill(0);
-				return *this;
-			}
-			uint64_t low = data64[interWordShifts] << intraWordShiftsL;
-			uint64_t high;
-			loopUnroll(N - interWordShifts - 1)
-				data64[i] = 0;
-			endLoop
-			loopUnrollFrom(interWordShifts + 1, N)
-				high = data64[i] >> intraWordShiftsR;
-			data64[i - interWordShifts - 1] = high | low;
-			low = data64[i] << intraWordShiftsL;
-			endLoop
-			data64[N - interWordShifts - 1] = low;
-			return *this;
-		}
-	}
-	
-	inline uint8_t getBit(const uint16_t idx) const noexcept {
-		// No bounds checking for performance. Only used internally with valid indices.
-		const uint16_t byteIdx = idx / 8U;
-		const uint8_t bitIdx = idx % 8U;
-		return (data8[byteIdx] >> bitIdx) & 0x01U;
-	}
+#endif
 };
 
-template <uint8_t N, uint16_t PLACES>
-inline AlignedUInt8Array<N> rightShift(const AlignedUInt8Array<N>& arr) {
-	if constexpr (PLACES == 0) {
-		return arr;
-	}
-	else if constexpr (PLACES >= 64U * N) {
-		return AlignedUInt8Array<N>({ .data64 = {0} });
-	}
-	else if constexpr (N == 1) {
-		return AlignedUInt8Array<N>({ .data64 = {arr.data64[0] >> PLACES} });
-	}
-	else if constexpr (PLACES % 64 == 0) {
-		constexpr uint8_t wordShifts = PLACES / 64U;
-		AlignedUInt8Array<N> returnVal;
-		loopUnrollFrom(wordShifts, N)
-			returnVal.data64[i] = arr.data64[i - wordShifts];
-		endLoop
-			loopUnroll(wordShifts)
-			returnVal.data64[i] = 0;
-		endLoop
-			return returnVal;
+template <uint8_t N>
+using Arr64 = std::array<uint64_t, N>;
+
+template <uint8_t N>
+inline Arr64<N> leftShift(const Arr64<N>& arr, const uint16_t places) noexcept {
+	if constexpr (N == 1) {	// Evaluated at compile time so no performance impact
+		return Arr64<N>{ arr[0] << places };
 	}
 	else {
-		constexpr uint8_t interWordShifts = PLACES / 64U;
-		constexpr uint8_t intraWordShiftsR = PLACES % 64U;
-		constexpr uint8_t intraWordShiftsL = 64U - intraWordShiftsR;
-		if constexpr (interWordShifts >= N) {
-			return AlignedUInt8Array<N>({ .data64 = {0} });
+		Arr64<N>returnVal{ 0 };
+		if (places >= 64U * N) {
+			return returnVal;
+		}	// All bits shifted out
+		if (places == 0) {
+			return Arr64<N>{ arr };
+		}	// No shift needed
+		const uint8_t interWordShifts = places / 64U;
+		const uint8_t intraWordShiftsL = places % 64U;
+		const uint8_t intraWordShiftsR = 64U - intraWordShiftsL;
+		uint64_t low = arr[interWordShifts] << intraWordShiftsL;
+		uint64_t high;
+
+		for (uint8_t i = interWordShifts + 1; i < N; ++i) {
+			high = arr[i] >> intraWordShiftsR;
+			returnVal[i - interWordShifts - 1] = high | low;
+			low = arr[i] << intraWordShiftsL;
 		}
-		AlignedUInt8Array<N> returnVal;
-		uint64_t high = arr.data64[N - 1 - interWordShifts] >> intraWordShiftsR;
-		uint64_t low;
-		loopUnroll(interWordShifts)
-			returnVal.data64[N - 1 - i] = 0;
-		endLoop
-			loopUnrollFrom(interWordShifts + 1, N)
-			low = arr.data64[N - 1 - i] << intraWordShiftsL;
-		returnVal.data64[N - i + interWordShifts] = high | low;
-		high = arr.data64[N - 1 - i] >> intraWordShiftsR;
-		endLoop
-			returnVal.data64[interWordShifts] = high;
+		returnVal[N - interWordShifts - 1] = low;
 		return returnVal;
 	}
 }
 
+template <uint8_t N>
+inline void leftShiftInPlace(Arr64<N>& arr, const uint16_t places) noexcept {
+	if constexpr (N == 1) {
+		arr[0] <<= places;
+		return;
+	}
+	else {
+		if (places >= 64U * N) {
+			arr.fill(0);
+			return;
+		}
+		if (places == 0) {
+			return;
+		}
+		const uint8_t interWordShifts = places / 64U;
+		const uint8_t intraWordShiftsL = places % 64U;
+		const uint8_t intraWordShiftsR = 64U - intraWordShiftsL;
+		uint64_t low = arr[interWordShifts] << intraWordShiftsL;
+		uint64_t high;
+
+		for (uint8_t i = interWordShifts + 1; i < N; ++i) {
+			high = arr[i] >> intraWordShiftsR;
+			arr[i - interWordShifts - 1] = high | low;
+			low = arr[i] << intraWordShiftsL;
+		}
+		arr[N - interWordShifts - 1] = low;
+	}
+}
+
+
+template <uint8_t N, uint16_t PLACES>
+inline Arr64<N> leftShift(const Arr64<N>& arr) noexcept {
+	if constexpr (PLACES == 0) {
+		return arr;
+	}
+	else if constexpr (PLACES >= 64U * N) {
+		return Arr64<N>{ 0 };
+	}
+	else if constexpr (N == 1) {
+		return Arr64<N>{arr[0] << PLACES};
+	}
+	else if constexpr (PLACES % 64 == 0) {
+		constexpr uint8_t wordShifts = PLACES / 64U;
+		Arr64<N> returnVal;
+
+		loopUnroll(N - wordShifts)
+			returnVal = arr[i + wordShifts];
+		endLoop
+
+		loopUnrollFrom(N - wordShifts, N)
+			returnVal[i] = 0;
+		endLoop
+
+		return returnVal;
+	}
+	else {
+		constexpr uint8_t interWordShifts = PLACES / 64U;
+		constexpr uint8_t intraWordShiftsL = PLACES % 64U;
+		constexpr uint8_t intraWordShiftsR = 64U - intraWordShiftsL;
+		if constexpr (interWordShifts >= N) {
+			return Arr64<N>{0};
+		}
+		AlignedUInt8Array<N> returnVal;
+		uint64_t low = arr[interWordShifts] << intraWordShiftsL;
+		uint64_t high;
+		loopUnroll(N - interWordShifts - 1)
+			returnVal[i] = 0;
+		endLoop
+
+		loopUnrollFrom(interWordShifts + 1, N)
+			high = arr[i] >> intraWordShiftsR;
+			returnVal[i - interWordShifts - 1] = high | low;
+			low = arr[i] << intraWordShiftsL;
+		endLoop
+		
+		returnVal[N - interWordShifts - 1] = low;
+		return returnVal;
+	}
+}
+
+template <uint8_t N, uint16_t PLACES>
+inline void leftShiftInPlace(Arr64<N>& arr) noexcept {
+	if constexpr (PLACES == 0) {
+		return;
+	}
+	else if constexpr (PLACES >= 64U * N) {
+		arr.fill(0);
+		return;
+	}
+	else if constexpr (N == 1) {
+		arr[0] <<= PLACES;
+		return;
+	}
+	else if constexpr (PLACES % 64 == 0) {
+		constexpr uint8_t wordShifts = PLACES / 64U;
+		loopUnroll(N - wordShifts)
+			arr[i] = arr[i + wordShifts];
+		endLoop
+		
+		loopUnrollFrom(N - wordShifts, N)
+			arr[i] = 0;
+		endLoop
+			
+		return *this;
+	}
+	else {
+		constexpr uint8_t interWordShifts = PLACES / 64U;
+		constexpr uint8_t intraWordShiftsL = PLACES % 64U;
+		constexpr uint8_t intraWordShiftsR = 64U - intraWordShiftsL;
+		if constexpr (interWordShifts >= N) {
+			arr.fill(0);
+			return *this;
+		}
+		uint64_t low = arr[interWordShifts] << intraWordShiftsL;
+		uint64_t high;
+
+		loopUnroll(N - interWordShifts - 1)
+			arr[i] = 0;
+		endLoop
+		
+		loopUnrollFrom(interWordShifts + 1, N)
+			high = arr[i] >> intraWordShiftsR;
+			arr[i - interWordShifts - 1] = high | low;
+			low = arr[i] << intraWordShiftsL;
+		endLoop
+
+		arr[N - interWordShifts - 1] = low;
+	}
+}
+
+template <uint8_t N, uint16_t PLACES>
+inline void leftShiftInPlace(uint64_t (&arr) [N]) {
+	leftShiftInPlace<N, PLACES>(reinterpret_cast<Arr64<N>&>(arr));
+}
 
 template <uint8_t N>
-std::wstring byteArrayToBinaryString(const AlignedUInt8Array<N>& arr) noexcept {
+std::wstring byteArrayToBinaryString(const Arr64<N>& arr) noexcept {
 	std::wstringstream ss;
 	ss << L'{';
 	for (uint8_t i = 0; i < 8 * N; ++i) {
-		std::bitset<8> bits(arr.data8[i]);
+
+		std::bitset<8> bits(arr[i]);
 		ss << bits << L' ';
 	}
 	ss << L'}';
 	return ss.str();
+}
+
+template <uint8_t N>
+inline uint8_t getBit(const Arr64<N>& arr, const uint16_t idx) noexcept {
+	// No bounds checking for performance. Only used internally with valid indices.
+	return (arr[idx / 64U] >> idx % 64U) & 0x01U;
 }
 
 inline void add3Module(uint8_t& bcd_byte) noexcept {
@@ -265,18 +244,28 @@ inline void add3Module(uint64_t& bcd_word) noexcept {
 }
 
 template <uint8_t N>
-inline AlignedUInt8Array<UINT64_BCD_ARRAY_SIZE(N)> binaryToBCD(const AlignedUInt8Array<N>& arr) noexcept {
+inline Arr64<UINT64_BCD_ARRAY_SIZE(N)> binaryToBCD(const Arr64<N>& arr) noexcept {
 	constexpr auto BCD_SIZE_BITS = BCD_BITWIDTH(64ULL * N);
 	constexpr auto BCD_ARR_WIDTH = UINT64_BCD_ARRAY_SIZE(N);
 
-	AlignedUInt8Array<BCD_ARR_WIDTH> bcdArray{ .data64 = {0} };
+#ifdef _DEBUG
+	uint64_t bcdArray [BCD_ARR_WIDTH] = {};
+#else
+	std::array<uint64_t, BCD_ARR_WIDTH> bcdArray = { 0 };
+#endif
 	
-	for (uint16_t i = 0; i < BCD_ARR_WIDTH; ++i) {
-		bcdArray.leftShiftInPlace<1>();
-		bcdArray.data64[BCD_ARR_WIDTH - 1] |= arr.getBit(N * 8 - 1 - i);
+	for (uint16_t j = 0; j < N * 64U; ++j) {
+		leftShiftInPlace<BCD_ARR_WIDTH, 1>(bcdArray);
+		bcdArray[BCD_ARR_WIDTH - 1] |= getBit(arr, j);
+
 		loopUnroll(BCD_ARR_WIDTH)
-			add3Module(bcdArray.data64[i]);
+			add3Module(bcdArray[i]);
 		endLoop
 	}
+
+#ifdef _DEBUG
+	return std::bit_cast<Arr64<BCD_ARR_WIDTH>>(bcdArray);
+#else
 	return bcdArray;
+#endif
 }

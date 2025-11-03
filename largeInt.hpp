@@ -83,8 +83,8 @@ private:
 		}
 	}
 
-	inline AlignedUInt8Array<UINT64_BCD_ARRAY_SIZE(N)> BCD() const noexcept {
-		return binaryToBCD(AlignedUInt8Array<N>{.data64 = data });
+	inline Arr64<UINT64_BCD_ARRAY_SIZE(N)> BCD() const noexcept {
+		return binaryToBCD(reverseArray(data));
 	}
 
 
@@ -430,8 +430,9 @@ public:
 	friend std::ostream& operator<<(std::ostream& os, const uint_array<N>& num) {
 		constexpr auto numBytes = UINT64_BCD_ARRAY_SIZE(N) * 8;
 		auto bcdArray = num.BCD();
-		for (int i = numBytes - 1; i >= 0; --i) {
-			os << std::hex << (bcdArray.data8[i] >> 4) << std::hex << (bcdArray.data8[i] & 0x0F);
+		constexpr auto arrSize = sizeof(bcdArray) / sizeof(bcdArray[0]);
+		for (int i = arrSize - 1; i >= 0; --i) {
+			os << std::hex << bcdArray[i];
 		}
 		return os;
 	}
