@@ -177,7 +177,7 @@ inline void leftShiftInPlace(Arr64<N>& arr) noexcept {
 		uint64_t low = arr[interWordShifts] << intraWordShiftsL;
 		uint64_t high;
 
-		loopUnroll(N - interWordShifts - 1)
+		loopUnroll(N - interWordShifts)
 			arr[i] = 0;
 		endLoop
 		

@@ -145,17 +145,9 @@ namespace LARGE_INT {
 }
 
 namespace BITWISE_FUNCTIONS {
-	TEST_CLASS(LEFT_SHIFT_RUNTIME) {
+	TEST_CLASS(LEFT_SHIFT_INPLACE_RUNTIME) {
 
-	public:
 		TEST_METHOD(LEFT_SHIFT_NO_BYTES) {
-			Arr64<1> test = { { 0b0101011011001010110101111101001011000100001011011110110100101101ULL} };
-			const uint8_t places = 13U;
-
-			Arr64<1> expected = { 0b0101011011001010110101111101001011000100001011011110110100101101ULL << places };
-			Assert::AreEqual(expected, leftShift(test, places));
-		}
-		TEST_METHOD(LEFT_SHIFT_INPLACE_NO_BYTES) {
 			Arr64<1> test = { { 0b0101011011001010110101111101001011000100001011011110110100101101ULL} };
 			const uint8_t places = 13U;
 
@@ -169,26 +161,11 @@ namespace BITWISE_FUNCTIONS {
 
 			const uint8_t places = 0u;
 			Arr64<2> expected = test;
-			Assert::AreEqual(expected, leftShift(test, places));
-		}
-		TEST_METHOD(LEFT_SHIFT_NO_PLACES_INPLACE) {
-			Arr64<2> test = { 0x1234567890ABCDEF, 0x0FEDCBA098765432 };
-			
-			const uint8_t places = 0u;
-			Arr64<2> expected = test;
 			leftShiftInPlace(test, places);
 			Assert::AreEqual(expected, test);
 		}
 
 		TEST_METHOD(LEFT_SHIFT_SIMPLE) {
-			Arr64<2> test = {0x0000000000000001, 0x0000000000000000};
-			const uint8_t places = 4;
-
-			Arr64<2> expected = { 0x0000000000000010, 0x0000000000000000 };
-			Assert::AreEqual(expected, leftShift(test, places));
-		}
-
-		TEST_METHOD(LEFT_SHIFT_SIMPLE_INPLACE) {
 			Arr64<2> test = { 0x0000000000000001, 0x0000000000000000 };
 			const uint8_t places = 4;
 
@@ -201,13 +178,6 @@ namespace BITWISE_FUNCTIONS {
 			Arr64<2> test = { 0x0000000000000001, 0x0000000000000002 };
 			const uint8_t places = 68;
 			Arr64<2> expected = { 0x0000000000000020, 0x0000000000000000 };
-			Assert::AreEqual(expected, leftShift(test, places));
-		}
-		
-		TEST_METHOD(LEFT_SHIFT_ACROSS_BOUNDARY_INPLACE) {
-			Arr64<2> test = { 0x0000000000000001, 0x0000000000000002 };
-			const uint8_t places = 68;
-			Arr64<2> expected = { 0x0000000000000020, 0x0000000000000000 };
 
 			leftShiftInPlace(test, places);
 			Assert::AreEqual(expected, test);
@@ -217,14 +187,7 @@ namespace BITWISE_FUNCTIONS {
 			Arr64<2> test = { 0xAAAAAAAAAAAAAAAA, 0x5555555555555555 };
 			const uint8_t places = 64;
 			Arr64<2> expected = { 0x5555555555555555, 0x0000000000000000 };
-			Assert::AreEqual(expected, leftShift(test, places));
-		}
 
-		TEST_METHOD(LEFT_SHIFT_FULL_WORD_INPLACE) {
-			Arr64<2> test = { 0xAAAAAAAAAAAAAAAA, 0x5555555555555555 };
-			const uint8_t places = 64;
-			Arr64<2> expected = { 0x5555555555555555, 0x0000000000000000 };
-			
 			leftShiftInPlace(test, places);
 			Assert::AreEqual(expected, test);
 		}
@@ -233,17 +196,112 @@ namespace BITWISE_FUNCTIONS {
 			Arr64<4> test = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
 			const uint16_t places = 267;	// 4*64=256 < 260 < 5*64=320
 			Arr64<4> expected = { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000 };
-			Assert::AreEqual(expected, leftShift(test, places));
-		}
-
-		TEST_METHOD(LEFT_SHIFT_BEYOND_WIDTH_INPLACE) {
-			Arr64<4> test = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
-			const uint16_t places = 267;	// 4*64=256 < 260 < 5*64=320
-			Arr64<4> expected = { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000 };
 
 			leftShiftInPlace(test, places);
 			Assert::AreEqual(expected, test);
 
+		}
+	};
+
+
+	TEST_CLASS(LEFT_SHIFT_RUNTIME) {
+
+	public:
+		TEST_METHOD(LEFT_SHIFT_NO_BYTES) {
+			Arr64<1> test = { { 0b0101011011001010110101111101001011000100001011011110110100101101ULL} };
+			const uint8_t places = 13U;
+
+			Arr64<1> expected = { 0b0101011011001010110101111101001011000100001011011110110100101101ULL << places };
+			Assert::AreEqual(expected, leftShift(test, places));
+		}
+
+		TEST_METHOD(LEFT_SHIFT_NO_PLACES) {
+			Arr64<2> test = { 0x1234567890ABCDEF, 0x0FEDCBA098765432 };
+
+			const uint8_t places = 0u;
+			Arr64<2> expected = test;
+			Assert::AreEqual(expected, leftShift(test, places));
+		}
+
+		TEST_METHOD(LEFT_SHIFT_SIMPLE) {
+			Arr64<2> test = {0x0000000000000001, 0x0000000000000000};
+			const uint8_t places = 4;
+
+			Arr64<2> expected = { 0x0000000000000010, 0x0000000000000000 };
+			Assert::AreEqual(expected, leftShift(test, places));
+		}
+
+		TEST_METHOD(LEFT_SHIFT_ACROSS_BOUNDARY) {
+			Arr64<2> test = { 0x0000000000000001, 0x0000000000000002 };
+			const uint8_t places = 68;
+			Arr64<2> expected = { 0x0000000000000020, 0x0000000000000000 };
+			Assert::AreEqual(expected, leftShift(test, places));
+		}
+
+		TEST_METHOD(LEFT_SHIFT_FULL_WORD) {
+			Arr64<2> test = { 0xAAAAAAAAAAAAAAAA, 0x5555555555555555 };
+			const uint8_t places = 64;
+			Arr64<2> expected = { 0x5555555555555555, 0x0000000000000000 };
+			Assert::AreEqual(expected, leftShift(test, places));
+		}
+
+		TEST_METHOD(LEFT_SHIFT_BEYOND_WIDTH) {
+			Arr64<4> test = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
+			const uint16_t places = 267;	// 4*64=256 < 260 < 5*64=320
+			Arr64<4> expected = { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000 };
+			Assert::AreEqual(expected, leftShift(test, places));
+		}
+	};
+
+	TEST_CLASS(LEFT_SHIFT_INPLACE_COMPILETIME) {
+
+		TEST_METHOD(LEFT_SHIFT_1_ELEM) {
+			Arr64<1> test = { { 0b0101011011001010110101111101001011000100001011011110110100101101ULL} };
+			constexpr uint8_t places = 13U;
+
+			Arr64<1> expected = { 0b0101011011001010110101111101001011000100001011011110110100101101ULL << places };
+			leftShiftInPlace<1, places>(test);
+			Assert::AreEqual(expected, test);
+		}
+
+		TEST_METHOD(LEFT_SHIFT_NO_PLACES) {
+			Arr64<2> test = { 0x1234567890ABCDEF, 0x0FEDCBA098765432 };
+			constexpr uint8_t places = 0u;
+			Arr64<2> expected = test;
+			leftShiftInPlace<2, places>(test);
+			Assert::AreEqual(expected, test);
+		}
+
+		TEST_METHOD(LEFT_SHIFT_SIMPLE) {
+			Arr64<2> test = { 0x0000000000000001, 0x0000000000000000 };
+			constexpr uint8_t places = 4;
+			Arr64<2> expected = { 0x0000000000000010, 0x0000000000000000 };
+			leftShiftInPlace<2, places>(test);
+			Assert::AreEqual(expected, test);
+		}
+
+		TEST_METHOD(LEFT_SHIFT_ACROSS_BOUNDARY) {
+			Arr64<2> test = { 0x0000000000000001, 0x0000000000000002 };
+			constexpr uint8_t places = 68;
+			Arr64<2> expected = { 0x0000000000000020, 0x0000000000000000 };
+			leftShiftInPlace<2, places>(test);
+			Assert::AreEqual(expected, test);
+		}
+
+		TEST_METHOD(LEFT_SHIFT_FULL_WORD) {
+			Arr64<2> test = { 0xAAAAAAAAAAAAAAAA, 0x5555555555555555 };
+			constexpr uint8_t places = 64;
+			Arr64<2> expected = { 0x5555555555555555, 0x0000000000000000 };
+			leftShiftInPlace<2, places>(test);
+			Assert::AreEqual(expected, test);
+		}
+
+		TEST_METHOD(LEFT_SHIFT_BEYOND_WIDTH) {
+			Arr64<4> test = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
+			constexpr uint16_t places = 267;	// 4*64=256 < 260 < 5*64=320
+			Arr64<4> expected = { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000 };
+			leftShiftInPlace<4, places>(test);
+			Assert::AreEqual(expected, test);
 		}
 	};
 
@@ -257,14 +315,6 @@ namespace BITWISE_FUNCTIONS {
 			Arr64<1> expected = { 0b0101011011001010110101111101001011000100001011011110110100101101ULL << places };
 			Assert::AreEqual(expected, leftShift<1, places>(test));
 		}
-		TEST_METHOD(LEFT_SHIFT_1_ELEM_INPLACE) {
-			Arr64<1> test = { { 0b0101011011001010110101111101001011000100001011011110110100101101ULL} };
-			constexpr uint8_t places = 13U;
-
-			Arr64<1> expected = { 0b0101011011001010110101111101001011000100001011011110110100101101ULL << places };
-			leftShiftInPlace<1, places>(test);
-			Assert::AreEqual(expected, test);
-		}
 
 		TEST_METHOD(LEFT_SHIFT_NO_PLACES) {
 			Arr64<2> test = { 0x1234567890ABCDEF, 0x0FEDCBA098765432 };
@@ -275,14 +325,7 @@ namespace BITWISE_FUNCTIONS {
 			Assert::AreEqual(expected, leftShift<2, places>(test));
 		}
 
-		TEST_METHOD(LEFT_SHIFT_NO_PLACES_INPLACE) {
-			Arr64<2> test = { 0x1234567890ABCDEF, 0x0FEDCBA098765432 };
-			constexpr uint8_t places = 0u;
-			Arr64<2> expected = test;
-			leftShiftInPlace<2, places>(test);
-			Assert::AreEqual(expected, test);
-		}
-
+		
 		TEST_METHOD(LEFT_SHIFT_SIMPLE) {
 			Arr64<2> test = { 0x0000000000000001, 0x0000000000000000 };
 			constexpr uint8_t places = 4;
@@ -291,28 +334,12 @@ namespace BITWISE_FUNCTIONS {
 
 			Assert::AreEqual(expected, leftShift<2, places>(test));
 		}
-
-		TEST_METHOD(LEFT_SHIFT_SIMPLE_INPLACE) {
-			Arr64<2> test = { 0x0000000000000001, 0x0000000000000000 };
-			constexpr uint8_t places = 4;
-			Arr64<2> expected = { 0x0000000000000010, 0x0000000000000000 };
-			leftShiftInPlace<2, places>(test);
-			Assert::AreEqual(expected, test);
-		}
-
+		
 		TEST_METHOD(LEFT_SHIFT_ACROSS_BOUNDARY) {
 			Arr64<2> test = { 0x0000000000000001, 0x0000000000000002 };
 			constexpr uint8_t places = 68;
 			Arr64<2> expected = { 0x0000000000000020, 0x0000000000000000 };
 			Assert::AreEqual(expected, leftShift<2, places>(test));
-		}
-
-		TEST_METHOD(LEFT_SHIFT_ACROSS_BOUNDARY_INPLACE) {
-			Arr64<2> test = { 0x0000000000000001, 0x0000000000000002 };
-			constexpr uint8_t places = 68;
-			Arr64<2> expected = { 0x0000000000000020, 0x0000000000000000 };
-			leftShiftInPlace<2, places>(test);
-			Assert::AreEqual(expected, test);
 		}
 
 		TEST_METHOD(LEFT_SHIFT_FULL_WORD) {
@@ -322,27 +349,11 @@ namespace BITWISE_FUNCTIONS {
 			Assert::AreEqual(expected, leftShift<2, places>(test));
 		}
 
-		TEST_METHOD(LEFT_SHIFT_FULL_WORD_INPLACE) {
-			Arr64<2> test = { 0xAAAAAAAAAAAAAAAA, 0x5555555555555555 };
-			constexpr uint8_t places = 64;
-			Arr64<2> expected = { 0x5555555555555555, 0x0000000000000000 };
-			leftShiftInPlace<2, places>(test);
-			Assert::AreEqual(expected, test);
-		}
-
 		TEST_METHOD(LEFT_SHIFT_BEYOND_WIDTH) {
 			Arr64<4> test = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
 			constexpr uint16_t places = 267;	// 4*64=256 < 260 < 5*64=320
 			Arr64<4> expected = { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000 };
 			Assert::AreEqual(expected, leftShift<4, places>(test));
-		}
-
-		TEST_METHOD(LEFT_SHIFT_BEYOND_WIDTH_INPLACE) {
-			Arr64<4> test = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
-			constexpr uint16_t places = 267;	// 4*64=256 < 260 < 5*64=320
-			Arr64<4> expected = { 0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000 };
-			leftShiftInPlace<4, places>(test);
-			Assert::AreEqual(expected, test);
 		}
 	};
 }
