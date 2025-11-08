@@ -199,7 +199,7 @@ inline void leftShiftInPlace(uint64_t (&arr) [N]) {
 template <uint8_t N>
 std::wstring byteArrayToBinaryString(const Arr64<N>& arr) noexcept {
 	std::wstringstream ss;
-	ss << L'{';
+	ss << L'\n' << L'{';
 	for (uint8_t i = 0; i < N; ++i) {
 		std::bitset<64> bits(arr[i]);
 		ss << bits << L' ';
