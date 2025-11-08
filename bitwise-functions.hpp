@@ -86,7 +86,12 @@ inline void leftShiftInPlace(Arr64<N>& arr, const uint16_t places) noexcept {
 			arr[i - interWordShifts - 1] = high | low;
 			low = arr[i] << intraWordShiftsL;
 		}
+
 		arr[N - interWordShifts - 1] = low;
+
+		for (uint8_t i = N - interWordShifts; i < N; ++i) {
+			arr[i] = 0;
+		}
 	}
 }
 
@@ -176,10 +181,6 @@ inline void leftShiftInPlace(Arr64<N>& arr) noexcept {
 		}
 		uint64_t low = arr[interWordShifts] << intraWordShiftsL;
 		uint64_t high;
-
-		loopUnroll(N - interWordShifts)
-			arr[i] = 0;
-		endLoop
 		
 		loopUnrollFrom(interWordShifts + 1, N)
 			high = arr[i] >> intraWordShiftsR;
@@ -188,6 +189,10 @@ inline void leftShiftInPlace(Arr64<N>& arr) noexcept {
 		endLoop
 
 		arr[N - interWordShifts - 1] = low;
+
+		loopUnrollFrom(N - interWordShifts, N)
+			arr[i] = 0;
+		endLoop
 	}
 }
 
