@@ -131,9 +131,6 @@ inline Arr64<N> leftShift(const Arr64<N>& arr) noexcept {
 		Arr64<N> returnVal;
 		uint64_t low = arr[interWordShifts] << intraWordShiftsL;
 		uint64_t high;
-		loopUnroll(N - interWordShifts - 1)
-			returnVal[i] = 0;
-		endLoop
 
 		loopUnrollFrom(interWordShifts + 1, N)
 			high = arr[i] >> intraWordShiftsR;
@@ -142,6 +139,11 @@ inline Arr64<N> leftShift(const Arr64<N>& arr) noexcept {
 		endLoop
 		
 		returnVal[N - interWordShifts - 1] = low;
+
+		loopUnrollFrom(N - interWordShifts, N)
+			returnVal[i] = 0;
+		endLoop
+
 		return returnVal;
 	}
 }
