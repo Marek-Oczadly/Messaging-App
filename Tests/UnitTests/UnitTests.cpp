@@ -6,9 +6,20 @@
 #include <cstdint>
 #include "pch.h"
 #include "CppUnitTest.h"
+#if defined(_DEBUG)
 #include "largeInt.hpp"
 #include "utils.hpp"
 #include "bitwise-functions.hpp"
+#else
+/*
+For some reason the linker fails to find these definitions in release mode as the compile command is run in Messaging-App\Test\UnitTests\.
+but the files are located in Messaging-App\ so the relative path needs to go up two directories. I cannot be bothered to fix this properly
+in the project settings right now so this is a quick fix.
+*/
+#include "../../largeInt.hpp"
+#include "../../utils.hpp"
+#include "../../bitwise-functions.hpp"
+#endif
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
