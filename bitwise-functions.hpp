@@ -7,11 +7,6 @@
 #include <array>
 #include "utils.hpp"
 
-#ifdef _DEBUG
-#include <bit>
-#endif
-
-
 
 constexpr uint64_t CEIL(const double value) noexcept {
 	return (static_cast<uint64_t>(value) == value) ? static_cast<uint64_t>(value) : static_cast<uint64_t>(value) + 1;
@@ -19,6 +14,10 @@ constexpr uint64_t CEIL(const double value) noexcept {
 
 constexpr uint64_t BCD_BITWIDTH(const uint64_t binary_bitwidth) noexcept {
 	return 4U * CEIL(static_cast<double>(binary_bitwidth) * 0.30102999566398119521373889472449); // log10(2) ~ 0.30103
+}
+
+constexpr uint64_t BINARY_BITWIDTH_FROM_BCD(const uint64_t bcd_bitwidth) noexcept {
+	return CEIL(static_cast<double>(bcd_bitwidth) / 0.30102999566398119521373889472449 / 4.0); // log10(2) ~ 0.30103
 }
 
 constexpr uint64_t UINT8_BCD_ARRAY_SIZE(const uint64_t uint64_count) noexcept {
@@ -218,7 +217,16 @@ std::wstring byteArrayToBinaryString(const Arr64<N>& arr) noexcept {
 template <uint8_t N>
 inline uint8_t getBit(const Arr64<N>& arr, const uint16_t idx) noexcept {
 	// No bounds checking for performance. Only used internally with valid indices.
-	return (arr[idx / 64U] >> idx % 64U) & 0x01U;
+#ifdef _DEBUG
+	const uint8_t arrPos = idx / 64U;
+	const uint8_t bitPos = 63 - idx % 64U;
+	const uint64_t word = arr[arrPos];
+	const auto shiftWord = word >> bitPos;
+	const uint8_t returned = shiftWord & 0x01U;
+	return returned;
+#else
+	return (arr[idx / 64U] >> (63 - idx % 64U)) & 0x01U;
+#endif
 }
 
 inline void add3Module(uint8_t& bcd_byte) noexcept {
@@ -255,24 +263,15 @@ inline Arr64<UINT64_BCD_ARRAY_SIZE(N)> binaryToBCD(const Arr64<N>& arr) noexcept
 	constexpr auto BCD_SIZE_BITS = BCD_BITWIDTH(64ULL * N);
 	constexpr auto BCD_ARR_WIDTH = UINT64_BCD_ARRAY_SIZE(N);
 
-#ifdef _DEBUG
-	uint64_t bcdArray [BCD_ARR_WIDTH] = {};
-#else
 	std::array<uint64_t, BCD_ARR_WIDTH> bcdArray = { 0 };
-#endif
 	
 	for (uint16_t j = 0; j < N * 64U; ++j) {
-		leftShiftInPlace<BCD_ARR_WIDTH, 1>(bcdArray);
-		bcdArray[BCD_ARR_WIDTH - 1] |= getBit(arr, j);
-
 		loopUnroll(BCD_ARR_WIDTH)
 			add3Module(bcdArray[i]);
 		endLoop
+		leftShiftInPlace<BCD_ARR_WIDTH, 1>(bcdArray);
+		bcdArray[BCD_ARR_WIDTH - 1] |= getBit(arr, j);
 	}
 
-#ifdef _DEBUG
-	return std::bit_cast<Arr64<BCD_ARR_WIDTH>>(bcdArray);
-#else
 	return bcdArray;
-#endif
 }

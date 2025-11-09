@@ -4,9 +4,10 @@
 
 #pragma once
 #include <array>
-#include <ostream>
+#include <iostream>
 #include <initializer_list>
 #include <string>
+#include <sstream>
 #include "utils.hpp"
 #include "math-intrinsics.hpp"
 #include "bitwise-functions.hpp"
@@ -427,23 +428,36 @@ public:
 		return *this;
 	}
 
+	std::wstring toWString() {
+		constexpr auto numBytes = UINT64_BCD_ARRAY_SIZE(N) * 8;
+		auto bcdArray = BCD();
+		std::wstringstream ss;
+		constexpr auto arrSize = sizeof(bcdArray) / sizeof(bcdArray[0]);
+		for (int i = 0; i < arrSize; ++i) {
+			ss << std::hex << bcdArray[i];
+		}
+		return ss.str();
+	}
+
+	std::string toString() {
+		constexpr auto numBytes = UINT64_BCD_ARRAY_SIZE(N) * 8;
+		auto bcdArray = BCD();
+		std::stringstream ss;
+		constexpr auto arrSize = sizeof(bcdArray) / sizeof(bcdArray[0]);
+		for (int i = 0; i < arrSize; ++i) {
+			ss << std::hex << bcdArray[i];
+		}
+		return ss.str();
+	}
+
 	friend std::ostream& operator<<(std::ostream& os, const uint_array<N>& num) {
 		constexpr auto numBytes = UINT64_BCD_ARRAY_SIZE(N) * 8;
 		auto bcdArray = num.BCD();
 		constexpr auto arrSize = sizeof(bcdArray) / sizeof(bcdArray[0]);
-		for (int i = arrSize - 1; i >= 0; --i) {
+		for (int i = 0; i < arrSize; ++i) {
 			os << std::hex << bcdArray[i];
 		}
 		return os;
-	}
-
-	std::wstring ToString() {
-		auto bcdArray = BCD();
-		std::wstringstream ss;
-		for (int i = UINT64_BCD_ARRAY_SIZE(N) * 8 - 1; i >= 0; --i) {
-			ss << std::hex << (bcdArray.data8[i] >> 4);
-			ss << std::hex << (bcdArray.data8[i] & 0x0F);
-		}
 	}
 };
 

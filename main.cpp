@@ -18,7 +18,8 @@ Compilation information:
 int main() {
 	uint256_t a = 12345678901234567899ULL;
 
-	std::cout << "a: " << a << NEWL;
+	std::cout << "a: " << a.toString() << NEWL;
+
 
 	return 0;
 }

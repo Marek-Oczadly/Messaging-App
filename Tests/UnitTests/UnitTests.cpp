@@ -546,4 +546,50 @@ namespace BITWISE_FUNCTIONS {
 			Assert::AreEqual(exp, test);
 		}
 	};
+
+	TEST_CLASS(GET_BIT) {
+		const Arr64<4> testArr = { 0b1110101101000110010100001011110111001000000011100010111010001000, 0b0001101110011000001011010011010000111100101110010110000111000000, 0b1111000111111010101111001000011010101000110100100010011001011000, 0b0000010010000010100000011100110011001101011100001110100001100001 };
+	public:
+		TEST_METHOD(GET_BIT_0) {
+			uint8_t expected = 1;
+			uint8_t pos = 0;
+			Assert::AreEqual(expected, getBit(testArr, pos));
+		}
+
+		TEST_METHOD(GET_BIT_1) {
+			uint8_t expected = 1;
+			uint8_t pos = 1;
+			Assert::AreEqual(expected, getBit(testArr, pos));
+		}
+		TEST_METHOD(GET_BIT_64) {
+			uint8_t expected = 0;
+			uint8_t pos = 64;
+			Assert::AreEqual(expected, getBit(testArr, pos));
+		}
+		TEST_METHOD(GET_RAND_0) {
+			uint8_t expected = 1;
+			uint8_t pos = 24;
+			Assert::AreEqual(expected, getBit(testArr, pos));
+		}
+		TEST_METHOD(GET_RAND_1) {
+			uint8_t expected = 0;
+			uint8_t pos = 86;
+			Assert::AreEqual(expected, getBit(testArr, pos));
+		}
+		TEST_METHOD(GET_RAND_2) {
+			uint8_t expected = 0;
+			uint8_t pos = 254;
+			Assert::AreEqual(expected, getBit(testArr, pos));
+		}
+		TEST_METHOD(GET_RAND_3) {
+			uint8_t expected = 1;
+			uint8_t pos = 255;
+			Assert::AreEqual(expected, getBit(testArr, pos));
+		}
+		TEST_METHOD(GET_RAND_4) {
+			uint8_t expected = 1;
+			uint8_t pos = 113;
+			Assert::AreEqual(expected, getBit(testArr, pos));
+		}
+	};
 }

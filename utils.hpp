@@ -14,6 +14,8 @@
 	#include <intrin.h>
 #endif
 
+#define UINT8(N) static_cast<uint8_t>(N)
+
 constexpr const char NEWL = '\n';
 constexpr const char TAB = '\t';
 
