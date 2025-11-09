@@ -222,8 +222,20 @@ inline uint8_t getBit(const Arr64<N>& arr, const uint16_t idx) noexcept {
 }
 
 inline void add3Module(uint8_t& bcd_byte) noexcept {
-	bcd_byte += ((bcd_byte << 4) >= 0x0500) ? 0x03 : 0x00;
-	bcd_byte += ((bcd_byte >> 4) >= 0x05) ? 0x0300 : 0x00;
+#ifdef _DEBUG
+	uint8_t rightBits = bcd_byte & 0b00001111;
+	if (rightBits >= 5) {
+		bcd_byte += 0x03;
+	}
+	uint8_t leftBits = (bcd_byte >> 4);
+
+	if (leftBits >= 5) {
+		bcd_byte += 0x30;
+	}
+#else
+	bcd_byte += ((bcd_byte & 0b00001111) >= 5) ? 0x03 : 0x00;
+	bcd_byte += ((bcd_byte >> 4) >= 5) ? 0x30 : 0x00;
+#endif
 }
 
 inline void add3Module(uint64_t& bcd_word) noexcept {

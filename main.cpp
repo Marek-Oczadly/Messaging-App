@@ -13,9 +13,10 @@ Compilation information:
 
 #include "largeInt.hpp"
 #include <iostream>
+#include <bitset>
 
 int main() {
-	uint512_t a = 12345678901234567890ULL;
+	uint256_t a = 12345678901234567899ULL;
 
 	std::cout << "a: " << a << NEWL;
 

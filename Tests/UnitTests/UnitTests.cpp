@@ -158,6 +158,7 @@ namespace LARGE_INT {
 	};
 }
 
+// DO NOT CHANGE
 namespace BITWISE_FUNCTIONS {
 	TEST_CLASS(LEFT_SHIFT_INPLACE_RUNTIME) {
 
@@ -503,6 +504,46 @@ namespace BITWISE_FUNCTIONS {
 			Arr64<4> expected = { 0b1100001011111100101011100111101001100110110011110001010110101110, 0b1001000010111000011100100001000000100101000010100100000000001111, 0b1010000000000000000000000000000000000000000000000000000000000000, 0b0000000000000000000000000000000000000000000000000000000000000000 };
 
 			Assert::AreEqual(expected, leftShift<4, places>(test));
+		}
+	};
+
+	TEST_CLASS(ADD3) {
+	public:
+		TEST_METHOD(NO_ADDITIONS) {
+			uint8_t test = 0b00110011;
+			uint8_t exp = test;
+
+			add3Module(test);
+			Assert::AreEqual(exp, test);
+		}
+
+		TEST_METHOD(NO_ADDITIONS_BOUNDARY) {
+			uint8_t test = 0b01000100;
+			uint8_t exp = test;
+			add3Module(test);
+
+			Assert::AreEqual(exp, test);
+		}
+
+		TEST_METHOD(ONE_ADDITION_R) {
+			uint8_t test = 0b00110111;
+			uint8_t exp =  0b00111010;
+			add3Module(test);
+			Assert::AreEqual(exp, test);
+		}
+
+		TEST_METHOD(TWO_ADDITIONS) {
+			uint8_t test = 0b01110111;
+			uint8_t exp =  0b10101010;
+			add3Module(test);
+			Assert::AreEqual(exp, test);
+		}
+
+		TEST_METHOD(ONE_ADDITION_L) {
+			uint8_t test = 0b01110011;
+			uint8_t exp =  0b10100011;
+			add3Module(test);
+			Assert::AreEqual(exp, test);
 		}
 	};
 }
