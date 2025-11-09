@@ -428,7 +428,7 @@ public:
 		return *this;
 	}
 
-	std::wstring toWString() {
+	std::wstring toWString() const noexcept {
 		constexpr auto numBytes = UINT64_BCD_ARRAY_SIZE(N) * 8;
 		auto bcdArray = BCD();
 		std::wstringstream ss;
@@ -439,7 +439,7 @@ public:
 		return ss.str();
 	}
 
-	std::string toString() {
+	std::string toString() const noexcept {
 		constexpr auto numBytes = UINT64_BCD_ARRAY_SIZE(N) * 8;
 		auto bcdArray = BCD();
 		std::stringstream ss;

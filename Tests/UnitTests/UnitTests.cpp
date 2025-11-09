@@ -33,13 +33,7 @@ namespace Microsoft {															\
 		namespace CppUnitTestFramework {										\
 			template <>															\
 			std::wstring ToString<uint_array<N>>(const uint_array<N>& q) {		\
-				std::wstringstream ss;											\
-				ss << L'{';														\
-				for (char i = N - 1; i >= 0; --i) {								\
-					ss << L"0x" << std::hex << std::uppercase << q[i] << L',';	\
-				}																\
-				ss << L'}';														\
-				return ss.str();												\
+				return q.toWString();											\
 			}																	\
 		}																		\
 	}																			\
