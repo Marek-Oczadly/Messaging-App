@@ -147,6 +147,7 @@ inline Arr64<N> leftShift(const Arr64<N>& arr) noexcept {
 	}
 }
 
+
 template <uint8_t N, uint16_t PLACES>
 inline void leftShiftInPlace(Arr64<N>& arr) noexcept {
 	if constexpr (PLACES == 0) {
@@ -198,9 +199,38 @@ inline void leftShiftInPlace(Arr64<N>& arr) noexcept {
 }
 
 template <uint8_t N, uint16_t PLACES>
-inline void leftShiftInPlace(uint64_t (&arr) [N]) {
-	leftShiftInPlace<N, PLACES>(reinterpret_cast<Arr64<N>&>(arr));
+inline void rightShiftInPlace(Arr64<N>& arr) noexcept {
+	if constexpr (PLACES == 0) {
+		return;
+	}
+	else if constexpr (PLACES >= 64 * N) {
+		arr.fill(0);
+		return;
+	}
+	else if constexpr (N == 1) {
+		arr[0] >>= PLACES;
+		return;
+	}
+	else if constexpr (PLACES % 64 == 0) {
+		constexpr uint8_t wordShifts = PLACES / 64U;
+
+		loopUnroll(N - wordShifts) 
+			arr[i + wordShifts] = arr[i];
+		endLoop
+
+		loopUnroll(wordShifts)
+			arr[i] = 0;
+		endLoop
+	}
+	else {
+		constexpr uint8_t interWordShifts = PLACES / 64U;
+		constexpr uint8_t intraWordShiftsR = PLACES % 64U;
+		constexpr uint8_t intraWordShiftsL = 64U - intraWordShiftsR;
+
+		//uint64_t right,  left = 
+	}
 }
+
 
 template <uint8_t N>
 std::wstring byteArrayToBinaryString(const Arr64<N>& arr) noexcept {

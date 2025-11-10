@@ -16,10 +16,13 @@ Compilation information:
 #include <bitset>
 
 int main() {
-	uint256_t a = 12345678901234567899ULL;
+	/*uint256_t a = 12345678901234567899ULL;*/
 
-	std::cout << "a: " << a.toString() << NEWL;
-
+	/*std::cout << "a: " << a.toString() << NEWL;*/
+	loopBackwardsFrom(256, 10)
+		std::cout << (int)i << ' ';
+	endLoop
+	std::cout << std::endl;
 
 	return 0;
 }

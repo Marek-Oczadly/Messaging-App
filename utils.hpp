@@ -60,7 +60,7 @@ inline void unroll(T&& func) {
 
 template <short N, short M, typename T>
 inline void unrollReverse(T&& func) {
-	if constexpr (N > M) {
+	if constexpr (N >= M) {
 		func(N);
 		unrollReverse<N - 1, M>(std::forward<T>(func));
 	}
@@ -77,12 +77,16 @@ inline void unrollReverseInclusive(T&& func) {
 #if defined(_DEBUG)
 #define loopUnroll(N) for (uint32_t i = 0; i < N; ++i) {
 #define loopUnrollFrom(M, N) for (uint32_t i = M; i < N; ++i) {
+#define loopUnrollBackwards(N) for (int32_t i = N - 1; i >= 0; --i) {
+#define loopBackwardsFrom(N, M) for (int32_t i = N - 1; i >= M; --i) {
 
 #define endLoop }
 
 #elif defined(NDEBUG)
 #define loopUnroll(N) unroll<N>([&](uint8_t i) {
 #define loopUnrollFrom(M, N) unroll<M, N>([&](uint8_t i) {
+#define loopUnrollBackwards(N) unrollReverse<N - 1, 0>([&](uint8_t i) {
+#define loopBackwardsFrom(N, M) unrollReverse<N - 1, M>([&](uint8_t i) {
 #define endLoop });
 #endif
 
