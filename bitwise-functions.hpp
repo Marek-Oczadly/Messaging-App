@@ -227,11 +227,7 @@ inline void rightShiftInPlace(Arr64<N>& arr) noexcept {
 		constexpr uint8_t intraWordShiftsR = PLACES % 64U;
 		constexpr uint8_t intraWordShiftsL = 64U - intraWordShiftsR;
 
-		uint64_t valOverwritten; // Allows forward iteration for better cache performance
-
-		loopUnroll(N - interWordShifts)
-			arr[i]
-		endLoop
+		
 	}
 }
 
