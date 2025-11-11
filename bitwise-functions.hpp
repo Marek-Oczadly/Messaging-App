@@ -36,6 +36,9 @@ inline Arr64<N> leftShift(const Arr64<N>& arr, const uint16_t places) noexcept {
 	if constexpr (N == 1) {	// Evaluated at compile time so no performance impact
 		return Arr64<N>{ arr[0] << places };
 	}
+	else if constexpr (N == 0) {
+		return Arr64<N>{};
+	}
 	else {
 		Arr64<N>returnVal{ 0 };
 		if (places >= 64U * N) {
@@ -64,6 +67,9 @@ template <uint8_t N>
 inline void leftShiftInPlace(Arr64<N>& arr, const uint16_t places) noexcept {
 	if constexpr (N == 1) {
 		arr[0] <<= places;
+		return;
+	}
+	else if constexpr (N == 0) {
 		return;
 	}
 	else {
@@ -97,6 +103,9 @@ inline void leftShiftInPlace(Arr64<N>& arr, const uint16_t places) noexcept {
 
 template <uint8_t N, uint16_t PLACES>
 inline Arr64<N> leftShift(const Arr64<N>& arr) noexcept {
+	if constexpr (N == 0) {
+		return Arr64<N>{};
+	}
 	if constexpr (PLACES == 0) {
 		return arr;
 	}
@@ -150,6 +159,10 @@ inline Arr64<N> leftShift(const Arr64<N>& arr) noexcept {
 
 template <uint8_t N, uint16_t PLACES>
 inline void leftShiftInPlace(Arr64<N>& arr) noexcept {
+	if constexpr(N == 0) {
+		return;
+	}
+
 	if constexpr (PLACES == 0) {
 		return;
 	}
@@ -200,7 +213,10 @@ inline void leftShiftInPlace(Arr64<N>& arr) noexcept {
 
 template <uint8_t N, uint16_t PLACES>
 inline void rightShiftInPlace(Arr64<N>& arr) noexcept {
-	if constexpr (PLACES == 0) {
+	if constexpr (N == 0) {
+		return;
+	}
+	else if constexpr (PLACES == 0) {
 		return;
 	}
 	else if constexpr (PLACES >= 64 * N) {
@@ -214,11 +230,11 @@ inline void rightShiftInPlace(Arr64<N>& arr) noexcept {
 	else if constexpr (PLACES % 64 == 0) {
 		constexpr uint8_t wordShifts = PLACES / 64U;
 
-		loopUnroll(N - wordShifts) 
-			arr[i + wordShifts] = arr[i];
+		loopBackwardsFrom(N, wordShifts)
+			arr[i] = arr[i - wordShifts];
 		endLoop
 
-		loopUnroll(wordShifts)
+		loopUnrollBackwards(wordShifts)
 			arr[i] = 0;
 		endLoop
 	}
@@ -227,7 +243,18 @@ inline void rightShiftInPlace(Arr64<N>& arr) noexcept {
 		constexpr uint8_t intraWordShiftsR = PLACES % 64U;
 		constexpr uint8_t intraWordShiftsL = 64U - intraWordShiftsR;
 
-		
+		uint64_t low, high = arr[N - interWordShifts - 1] >> intraWordShiftsR;
+		loopBackwardsFrom(N, interWordShifts + 1)
+			low = arr[i - interWordShifts - 1] << intraWordShiftsL;
+			arr[i] = high | low;
+			high = arr[i - interWordShifts - 1] >> intraWordShiftsR;
+		endLoop
+
+		arr[interWordShifts] = high;
+
+		loopUnrollBackwards(interWordShifts)
+			arr[i] = 0;
+		endLoop
 	}
 }
 
