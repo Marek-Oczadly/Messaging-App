@@ -7,8 +7,10 @@
 #include <bit>
 #include <bitset>
 #include <array>
+#include <string_view>
+#include <cctype>
+#include <algorithm>
 
-#include "masks.hpp"
 
 #if defined(_MSC_VER)
 	#include <intrin.h>
@@ -196,4 +198,12 @@ inline std::array<T, N> reverseArray(const std::array<T, N>& arr) noexcept {
 		result[N - 1 - i] = arr[i];
 	endLoop
 	return result;
+}
+
+bool isNumeric(const std::string_view str) noexcept {
+	return !str.empty() && std::all_of(str.begin(), str.end(),
+		[](char c) {
+			return std::isdigit(static_cast<unsigned char>(c));
+		}
+	);
 }

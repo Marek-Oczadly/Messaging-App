@@ -8,6 +8,7 @@
 #include <initializer_list>
 #include <string>
 #include <sstream>
+#include <stdexcept>
 #include "utils.hpp"
 #include "math-intrinsics.hpp"
 #include "bitwise-functions.hpp"
@@ -25,6 +26,8 @@ class uint_array {
 	**/
 private:
 	std::array<uint64_t, N> data;
+
+	//static uint8_t inline 
 
 	template <uint8_t M>
 	inline uint_array<maxValue(N, M)> naiveMultiply(const uint_array<M>& other) const noexcept {
@@ -93,6 +96,21 @@ public:
 	// Allows the use of private members within templated methods
 	template <uint8_t M>
 	friend class uint_array;
+
+	template <uint8_t M>
+	uint_array(const char(&s)[M]) {
+		// Each character is 4 bits / 0.5 bytes
+		constexpr auto BCD_ARR_LENGTH = CEIL((4.0 * M) / 64.0); // CBA to simplify its 7am
+
+		if (!isNumeric(s)) {
+			throw std::invalid_argument("Input string must only contain digits.");
+		}
+
+		Arr64<BCD_ARR_LENGTH> bcdArray = { 0 };
+		for (uint8_t i = M - 2; i >= 0; --i) {	// -2 to skip null terminator
+
+		}
+	}
 
 	uint_array() noexcept = default;
 

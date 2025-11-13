@@ -28,6 +28,16 @@ constexpr uint64_t UINT64_BCD_ARRAY_SIZE(const uint64_t uint64_count) noexcept {
 	return CEIL(static_cast<double>(BCD_BITWIDTH(uint64_count * 64)) / 64.0);
 }
 
+constexpr uint64_t BINARY_ARR64_SIZE_BCD(const uint64_t bcd_bitwidth) noexcept {
+	return CEIL(static_cast<double>(BINARY_BITWIDTH_FROM_BCD(bcd_bitwidth)) / 64.0);
+}
+
+constexpr uint8_t Arr64FromStrnLength(const uint16_t strnlen) noexcept {
+	// Assume no leading 0s
+	// Each character is 4 bits
+	return CEIL(static_cast<double>(strnlen * 4.0) / 64.0);
+}
+
 template <uint8_t N>
 using Arr64 = std::array<uint64_t, N>;
 
@@ -286,6 +296,14 @@ inline uint8_t getBit(const Arr64<N>& arr, const uint16_t idx) noexcept {
 #endif
 }
 
+template <uint16_t IDX, uint8_t N>
+inline uint8_t getBitCompiletime(const Arr64<N>& arr) noexcept {
+	static_assert(IDX < N * 64U, "Index out of bounds in getBit<>.");	// Compile-time check so no performance impact
+	constexpr uint8_t arrPos = IDX / 64U;
+	constexpr uint8_t bitPos = 63 - IDX % 64U;
+	return (arr[arrPos] >> bitPos) & 0x01U;
+}
+
 inline void add3Module(uint8_t& bcd_byte) noexcept {
 #ifdef _DEBUG
 	uint8_t rightBits = bcd_byte & 0b00001111;
@@ -303,6 +321,22 @@ inline void add3Module(uint8_t& bcd_byte) noexcept {
 #endif
 }
 
+inline void sub3Module(uint8_t& bcd_byte) noexcept {
+#ifdef _DEBUG
+	uint8_t rightBits = bcd_byte & 0b00001111;
+	if (rightBits >= 8) {
+		bcd_byte -= 0x03;
+	}
+	uint8_t leftBits = (bcd_byte >> 4);
+	if (leftBits >= 8) {
+		bcd_byte -= 0x30;
+	}
+#else
+	bcd_byte -= ((bcd_byte & 0b00001111) >= 8) ? 0x03 : 0x00;
+	bcd_byte -= ((bcd_byte >> 4) >= 8) ? 0x30 : 0x00;
+#endif
+}
+
 inline void add3Module(uint64_t& bcd_word) noexcept {
 	std::array<uint8_t, 8>& byte_arr = reinterpret_cast<std::array<uint8_t, 8>&>(bcd_word);
 	add3Module(byte_arr[0]);
@@ -313,6 +347,18 @@ inline void add3Module(uint64_t& bcd_word) noexcept {
 	add3Module(byte_arr[5]);
 	add3Module(byte_arr[6]);
 	add3Module(byte_arr[7]);
+}
+
+inline void sub3Module(uint64_t& bcd_word) noexcept {
+	std::array<uint8_t, 8>& byte_arr = reinterpret_cast<std::array<uint8_t, 8>&>(bcd_word);
+	sub3Module(byte_arr[0]);
+	sub3Module(byte_arr[1]);
+	sub3Module(byte_arr[2]);
+	sub3Module(byte_arr[3]);
+	sub3Module(byte_arr[4]);
+	sub3Module(byte_arr[5]);
+	sub3Module(byte_arr[6]);
+	sub3Module(byte_arr[7]);
 }
 
 template <uint8_t N>
@@ -329,6 +375,24 @@ inline Arr64<UINT64_BCD_ARRAY_SIZE(N)> binaryToBCD(const Arr64<N>& arr) noexcept
 		leftShiftInPlace<BCD_ARR_WIDTH, 1>(bcdArray);
 		bcdArray[BCD_ARR_WIDTH - 1] |= getBit(arr, j);
 	}
-
 	return bcdArray;
+}
+
+template <uint8_t N>
+inline Arr64<BINARY_ARR64_SIZE_BCD(N)> BCDToBinary(Arr64<N>& bcdArr) noexcept {
+	constexpr auto BINARY_SIZE_BITS = BINARY_BITWIDTH_FROM_BCD(64ULL * N);
+	constexpr auto BINARY_ARR_WIDTH = BINARY_ARR64_SIZE_BCD(N);
+
+	std::array<uint64_t, BINARY_ARR_WIDTH> binaryArray = { 0 };
+
+	for (uint16_t j = 0; j < BINARY_ARR_WIDTH * 64U; ++j) {
+		rightShiftInPlace<N, 1>(bcdArr);
+		rightShiftInPlace<BINARY_ARR_WIDTH, 1>(binaryArray);
+		binaryArray[0] |= (static_cast<uint64_t>(getBitCompiletime<64ULL * N - 1>(bcdArr)) << 63U);
+
+		loopUnroll(N)
+			sub3Module(bcdArr[i]);
+		endLoop
+	}
+	return binaryArray;
 }
