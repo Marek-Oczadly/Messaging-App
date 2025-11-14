@@ -102,13 +102,13 @@ public:
 		// Each character is 4 bits / 0.5 bytes
 		constexpr auto BCD_ARR_LENGTH = CEIL((4.0 * M) / 64.0); // CBA to simplify its 7am
 
-		if (!isNumeric(s)) {
+		if (not isNumeric(s)) {
 			throw std::invalid_argument("Input string must only contain digits.");
 		}
 
 		Arr64<BCD_ARR_LENGTH> bcdArray = { 0 };
-		for (uint8_t i = M - 2; i >= 0; --i) {	// -2 to skip null terminator
-
+		if constexpr ((M - 1) % 16 == 0) {
+			
 		}
 	}
 

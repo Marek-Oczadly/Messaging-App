@@ -19,6 +19,7 @@
 
 #if defined(_WIN32) && defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))	// Windows for X86 or X86_64 in MSVC
 #	include <intrin.h>	// MSVC exclusive header for SIMD detection
+#	include <immintrin.h>
 #endif
 
 enum class CPUArchitectures : unsigned char {

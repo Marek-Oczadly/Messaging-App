@@ -268,6 +268,16 @@ inline void rightShiftInPlace(Arr64<N>& arr) noexcept {
 	}
 }
 
+template <uint8_t N>
+void setNibble(Arr64<N>& arr, const uint16_t nibbleIdx, const uint8_t value) noexcept {
+	// No bounds checking for performance. Only used internally with valid indices.
+	const uint8_t wordIdx = nibbleIdx / 16U;
+	const uint8_t byteIdx = (nibbleIdx % 16U) / 2U;
+	const bool isLowerNibble = static_cast<bool>(nibbleIdx % 2U);
+	uint8_t& byte = reinterpret_cast<std::array<uint8_t, 8>&>(arr[wordIdx])[byteIdx];
+	byte &= isLowerNibble ? 0xF0 : 0x0F;	// Clear the target nibble
+	byte |= (value & 0x0F) << (isLowerNibble ? 0 : 4);	// Set the target nibble
+}
 
 template <uint8_t N>
 std::wstring byteArrayToBinaryString(const Arr64<N>& arr) noexcept {
